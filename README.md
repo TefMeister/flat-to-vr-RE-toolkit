@@ -73,3 +73,10 @@ own licenses and are neither relicensed nor redistributed by this repo.
 line of our mods ourselves** by trial and error — we copy no one's source code or files,
 regardless of license or price. Our own output, in turn, is yours to build on as long as
 you credit us.
+
+## Contributing & policy
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — how we credit and link sources, our
+**study-everything-public but write-our-own-code** rule (we copy no one else's
+source code or files, any license or price), the terms for reusing our work
+(free, with credit), and how to request a correction or removal.
