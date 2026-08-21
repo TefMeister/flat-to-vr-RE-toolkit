@@ -48,9 +48,10 @@ don't see yourself credited above, that's an oversight on our part, not a judgem
 about your contribution. Please open a GitHub issue on this repository and we'll correct
 the credits as soon as possible.
 
-**If you want your work removed or not used:** if you're the owner or creator of
-something referenced or used here, and you'd rather your work not be referenced in this
-project, or you want specific content removed, please tell us by opening a GitHub issue.
-We'll honour that request promptly — no argument and no delay — and find another way to
-do the job that doesn't rely on your material. This is your work; we're only grateful to
-have learned from it.
+**If you want your work removed or not used:** if you're credited or referenced here and
+you'd rather not be, open a GitHub issue or email **td3kxlvr@proton.me** and tell us
+**exactly what to remove**. We'll do it promptly — no argument, no delay, and no need to
+prove ownership or explain why — and find another way to do the job that doesn't rely on
+your material. To be clear about how we work: we **learn techniques and credit their
+authors; we do not copy or reuse anyone's actual code or files**, regardless of license
+or price. This is your work; we're only grateful to have learned from it.
