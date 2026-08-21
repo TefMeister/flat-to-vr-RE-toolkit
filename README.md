@@ -39,6 +39,15 @@ Psychonauts (bespoke), Far Cry 2 (Dunia), Enslaved (Unreal Engine 3). The tools 
 here earned their place on those projects — see each tool's "proven on" note in
 [`TOOLKIT.md`](TOOLKIT.md).
 
+## Related repositories
+
+- **[flat-to-vr-cross-engine-research](https://github.com/TefMeister/flat-to-vr-cross-engine-research)**
+  — the companion repo: a public, engine-agnostic **knowledge library** of publicly-available
+  flat→VR info (the tool landscape, the per-engine adapter model + porting checklist, technique
+  deep-dives, and worked case studies like RE Engine, Creation Engine 2, and Anvil). Where this
+  toolkit is the *method and tooling*, that library is the *public knowledge* behind it. Use the
+  two together.
+
 ## Scope, ethics, legality
 
 - **Non-commercial fan work.** Requires owning a legitimate copy of any game worked on;
