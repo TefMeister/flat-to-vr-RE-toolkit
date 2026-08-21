@@ -145,14 +145,17 @@ what approach they take, drawn from **publicly available, non-paywalled** inform
 
 ### R.E.A.L. VR — Luke Ross
 - **Links:** https://github.com/LukeRoss00/gta5-real-mod (the GTA V mod is
-  source-**available** but **unlicensed** — i.e. all rights reserved by default: viewable,
-  **not** reusable) · https://www.patreon.com/realvr (the other titles are **paid builds**
-  distributed via Patreon).
+  source-**available** but **unlicensed** — all rights reserved by default: viewable, **not**
+  reusable) · https://www.patreon.com/realvr. **Availability (verified Aug 2026):** the R.E.A.L.
+  framework has been **free with optional donations since 15 March 2026** (formerly paid), after a
+  CD Projekt DMCA over the paid Cyberpunk 2077 mod — **Cyberpunk 2077 is excluded** from the free
+  release; the GTA V / RDR2 / Mafia mods were earlier pulled after a Take-Two complaint. See
+  [Road to VR](https://roadtovr.com/luke-ross-vr-mods-free-cyberpunk-2077/).
 - **What:** Alternate-eye (AER) D3D-injection VR mods for AAA games.
 - **Why noted:** The *publicly-known concept* of alternate-eye injection is the
   inspiration. Because the GTA V repo carries **no license**, we treat its code as
   look-don't-touch and copy nothing from it; we likewise do not access, unpack, or reuse
-  any paid build or patron-only material. Only the idea, which is common knowledge, is
+  any donation-gated or previously-paid build. Only the idea, which is common knowledge, is
   ours to use.
 
 ---
