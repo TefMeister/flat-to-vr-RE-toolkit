@@ -30,7 +30,7 @@ credited, or ask us to stop" section at the bottom.
 | EMV-Engine-SILVER — actively-maintained fork of EMV-Engine | SilverEzredes | https://github.com/SilverEzredes/EMV-Engine-SILVER |
 | OpenVR / SteamVR — VR runtime & compositor target | Valve | https://github.com/ValveSoftware/openvr |
 | OpenXR — cross-vendor VR runtime standard | The Khronos Group and contributors | https://www.khronos.org/openxr/ |
-| R.E.A.L. VR mods (alternate-eye D3D injection *concept* only — GTA V repo is source-available but unlicensed/all-rights-reserved, other titles are paid; no code, paywalled, or proprietary material used) | Luke Ross | https://github.com/LukeRoss00/gta5-real-mod · https://www.patreon.com/realvr |
+| R.E.A.L. VR mods (alternate-eye D3D injection *concept* only — GTA V repo is source-available but unlicensed/all-rights-reserved; framework free w/ donations since Mar 2026, Cyberpunk 2077 excluded; no code, gated, or proprietary material used) | Luke Ross | https://github.com/LukeRoss00/gta5-real-mod · https://www.patreon.com/realvr |
 | vorpX — commercial VR injection driver, referenced only as public prior art (closed source; no code inspected or reused) | Ralf Ostertag / Animation Labs | https://www.vorpx.com |
 | AI development assistance | Claude (Anthropic) | https://www.anthropic.com |
 
