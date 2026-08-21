@@ -49,3 +49,12 @@ here earned their place on those projects — see each tool's "proven on" note i
   games we own.
 - We **credit everyone** whose work this builds on and **honour correction/removal
   requests from actual rights holders** — see [`CREDITS.md`](CREDITS.md).
+
+## License
+
+The documentation, playbook, and templates in this repository are licensed
+**[CC BY 4.0](LICENSE)** (Creative Commons Attribution 4.0) — share and adapt freely
+with credit. This covers only the text we authored here; the third-party tools and
+frameworks referenced (REFramework, UEVR, MinHook, x64dbg, Superpowers, EMV-Engine,
+OpenVR, OpenXR, and the rest in [`CREDITS.md`](CREDITS.md)) remain under their own
+licenses and are neither relicensed nor redistributed by this repo.

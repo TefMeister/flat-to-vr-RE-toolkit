@@ -15,6 +15,7 @@ Always check for existing prior art *for the engine family* before doing manual 
 When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 
 ### REFramework — praydog
+- **Link:** https://github.com/praydog/REFramework · docs: https://cursey.github.io/reframework-book/ · https://refdocs.praydog.com/
 - **What:** Mod loader, Lua/C++ scripting platform, and generic 6DOF VR for **all RE
   Engine games** (RE2/RE3/RE7/RE8/DMC5/MHR/…).
 - **Why we use it:** For RE Engine titles it *is* the foothold — it already solves
@@ -27,6 +28,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
   — see `CREDITS.md`.
 
 ### UEVR — praydog
+- **Link:** https://github.com/praydog/UEVR
 - **What:** Unreal Engine VR injector, attaches to **UE 4.8 → 5.x** via Unreal's own
   reflection (RTTI/vtable scans for `FSceneView`, `GEngine`, the `UObject`/`FName`
   system).
@@ -53,6 +55,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
   targets).
 
 ### MinHook — TsudaKageyu & contributors
+- **Link:** https://github.com/TsudaKageyu/minhook
 - **What:** Minimalist x86/x64 function-hooking library (inline trampolines).
 - **Why we use it:** The workhorse for hooking the graphics-API boundary
   (Present/swapchain, `OMSetRenderTargets`, device/context calls) and engine functions
@@ -65,6 +68,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 ## Debugger & automation (Phase 0 recon, Phase 3 model-building)
 
 ### x64dbg — mrexodia, Sigma, torusrxxx & the x64dbg community
+- **Link:** https://github.com/x64dbg/x64dbg
 - **What:** Open-source x64/x86 debugger for Windows.
 - **Why we use it:** First read of the binary (renderer API, strings, console/cvar
   system), DRM/anti-debug recon, and stepping through camera/projection code to find
@@ -72,6 +76,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 - **Phase:** 0, 3–4. **Proven on:** all manual-engine projects.
 
 ### x64dbg-automate — dariushoule
+- **Link:** https://github.com/dariushoule/x64dbg-automate · skills: https://github.com/dariushoule/x64dbg-skills
 - **What:** Remote-automation plugin for x64dbg plus a Python client — script the
   debugger instead of clicking.
 - **Why we use it:** Lets the *model* drive the debugger: set breakpoints, read memory,
@@ -86,6 +91,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 ## VR runtimes (Phase 6 — the North Star)
 
 ### OpenVR / SteamVR — Valve
+- **Link:** https://github.com/ValveSoftware/openvr
 - **What:** VR runtime + compositor. A Quest over a streaming link speaks SteamVR.
 - **Why we use it:** The submission target for per-eye textures and the source of HMD
   pose. When we drive the compositor ourselves (non-REFramework engines), this is the
@@ -94,6 +100,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
   manual conversions.
 
 ### OpenXR — The Khronos Group
+- **Link:** https://www.khronos.org/openxr/ · SDK: https://github.com/KhronosGroup/OpenXR-SDK
 - **What:** Cross-vendor VR runtime standard.
 - **Why we use it:** The portable alternative to OpenVR for the runtime layer; UEVR's
   OpenXR path is our reference for how to do per-eye swapchain submission and pose
@@ -105,6 +112,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 ## Engine-specific Lua toolkits (RE Engine polish, Phase 7)
 
 ### EMV-Engine — alphaZomega (alphazolam) · fork: EMV-Engine-SILVER (SilverEzredes)
+- **Link:** https://github.com/alphazolam/EMV-Engine · fork: https://github.com/SilverEzredes/EMV-Engine-SILVER
 - **What:** A large collection of REFramework Lua scripts (Enhanced Model Viewer,
   console, gravity gun, enemy spawner) and a shared utility library.
 - **Why we use it:** A **technique reference** — e.g. a hook-timing technique from its
@@ -122,12 +130,14 @@ knowing about — so they're listed honestly as *reference/inspiration*, not as 
 ship.
 
 ### vorpX — Ralf Ostertag / Animation Labs
+- **Link:** https://www.vorpx.com (commercial; no public source repo)
 - **What:** Commercial VR injection driver with per-game profiles.
 - **Why noted:** For some of our targets (e.g. The Evil Within via a Z3D profile) it
   was the *only prior VR route in existence* — useful to compare against and to sanity
   check what "possible at all" looks like before doing it properly ourselves.
 
 ### R.E.A.L. VR — Luke Ross
+- **Link:** https://www.patreon.com/realvr (closed-source; distributed via Patreon)
 - **What:** Alternate-eye (AER) D3D-injection VR mods for AAA games.
 - **Why noted:** Inspiration for the alternate-eye injection approach and a reference
   point for how a one-person cross-engine VR effort structures itself.
