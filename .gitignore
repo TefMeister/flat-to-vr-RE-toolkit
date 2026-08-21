@@ -1,0 +1,26 @@
+# Never commit game files or binaries — this project stores only files we create.
+# Game executables, assets, and archives
+*.exe
+*.dll
+*.bin
+*.bik
+*.pak
+*.wad
+*.megatexture
+*.vt
+*.streamdb
+*.resources
+*.tga
+*.dds
+*.bimage
+*.md6
+*.bmodel
+*.lwo
+*.mtr
+# Extracted or dumped memory / process data
+*.dmp
+*.dump
+*.raw
+# Local scratch
+/tmp/
+*.log
