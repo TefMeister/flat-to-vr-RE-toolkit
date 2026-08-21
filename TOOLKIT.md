@@ -125,22 +125,35 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 
 ## Prior VR routes we mined as reference (not dependencies)
 
-These are not part of any shipped mod, but they were genuinely consulted and are worth
-knowing about — so they're listed honestly as *reference/inspiration*, not as tools we
-ship.
+These are **closed-source, proprietary/commercial** products. They are not part of any
+shipped mod and are listed only as *reference/inspiration* — we note that they exist and
+what approach they take, drawn from **publicly available, non-paywalled** information.
+
+> **Safety boundary (applies to everything in this section):** we use **none of their
+> code**, decompile nothing, and reproduce **no paywalled or proprietary content** (paid
+> builds, patron-only posts, internal docs). What we take is the publicly-known *concept*
+> (e.g. "alternate-eye injection exists"), never their implementation. If any owner would
+> rather not be referenced at all, we'll remove the mention — see [`CREDITS.md`](CREDITS.md).
 
 ### vorpX — Ralf Ostertag / Animation Labs
-- **Link:** https://www.vorpx.com (commercial; no public source repo)
+- **Link:** https://www.vorpx.com · forums: https://www.vorpx.com/forums/ (commercial
+  product; **closed source, no public repository**)
 - **What:** Commercial VR injection driver with per-game profiles.
-- **Why noted:** For some of our targets (e.g. The Evil Within via a Z3D profile) it
-  was the *only prior VR route in existence* — useful to compare against and to sanity
-  check what "possible at all" looks like before doing it properly ourselves.
+- **Why noted:** For some of our targets (e.g. The Evil Within via a Z3D profile) it was
+  the *only prior VR route in existence* — useful only to know "some VR path is possible"
+  before doing it properly ourselves. We inspect none of its binaries and copy nothing.
 
 ### R.E.A.L. VR — Luke Ross
-- **Link:** https://www.patreon.com/realvr (closed-source; distributed via Patreon)
+- **Links:** https://github.com/LukeRoss00/gta5-real-mod (the GTA V mod is
+  source-**available** but **unlicensed** — i.e. all rights reserved by default: viewable,
+  **not** reusable) · https://www.patreon.com/realvr (the other titles are **paid builds**
+  distributed via Patreon).
 - **What:** Alternate-eye (AER) D3D-injection VR mods for AAA games.
-- **Why noted:** Inspiration for the alternate-eye injection approach and a reference
-  point for how a one-person cross-engine VR effort structures itself.
+- **Why noted:** The *publicly-known concept* of alternate-eye injection is the
+  inspiration. Because the GTA V repo carries **no license**, we treat its code as
+  look-don't-touch and copy nothing from it; we likewise do not access, unpack, or reuse
+  any paid build or patron-only material. Only the idea, which is common knowledge, is
+  ours to use.
 
 ---
 
