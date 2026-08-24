@@ -8,9 +8,13 @@ everywhere. (For the reusable tooling and the public knowledge library, see
 
 ## How we treat other people's work
 
-1. **Study everything public; write our own code.** We read, study, and learn from anything
-   publicly available — repos, docs, articles, videos, forum posts. But we build our mods and
-   tools **ourselves, by trial and error**, and everything we ship is **our own work**.
+1. **Study everything public — online only; nothing gets downloaded to study.** We read, study,
+   and learn from anything publicly available — repos, docs, articles, videos, forum posts —
+   strictly online (browser, web fetch, a repo's own file viewer). We never clone or download
+   someone else's repo, mod, or files onto our machines just to look inside them. (This doesn't
+   cover tools we actually install to run — REFramework, UEVR, official SDKs, and the like are
+   dependencies, not material we're studying.) We then build our mods and tools **ourselves, by
+   trial and error**, and everything we ship is **our own work**.
 2. **Zero code or files from anyone else.** We do **not** paste, transcribe, or lightly-reword
    anyone else's source code, config, or files into our repositories — **not even a short snippet,
    whole or partial, regardless of license or price, and regardless of whether it is free to
