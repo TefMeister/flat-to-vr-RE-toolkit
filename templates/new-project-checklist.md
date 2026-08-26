@@ -8,22 +8,29 @@ Phase 0". Replace `<project>` with the game's slug (e.g. `far-cry-2-vr`).
 - [ ] Confirm we own the game. Record platform, store, build, version.
 - [ ] Note if it's an unofficial port (extra fragility + legal/attribution nuance).
 
-## Repos (the standing five, unified naming)
+## Repos (the standing six, unified naming)
 - [ ] `<project>-mod` — **public**, releases only. *Ask before pushing here.*
 - [ ] `<project>-dev-archive` — **public**, messy in-progress history.
 - [ ] `<project>-modding-notes` — **public**, field notes / progress ledger.
 - [ ] `<project>-staging` — **PRIVATE**, all unverified WIP, pushed freely without asking.
 - [ ] `<project>-vr-engine-research` — **public**, the distilled engine knowledge.
-- [ ] Local backup clones of all five in `D:\claude video game stuff\github-backups\`.
+- [ ] `<project>-external-research` — **public**, ongoing public-research leads
+      (written only by that project's dedicated research session).
+- [ ] Local backup clones of all six in `D:\claude video game stuff\github-backups\`.
 
 ## Seed the research repo
-- [ ] Copy `PLAYBOOK.md` from this toolkit into `<project>-vr-engine-research/`.
+- [ ] Add the standard `PLAYBOOK.md` pointer file to `<project>-vr-engine-research/`
+      (copy it from any existing `-engine-research` repo; it links back to this
+      toolkit's canonical `PLAYBOOK.md` — do not paste the full text).
 - [ ] Start `ENGINE-DOSSIER.md` from `templates/per-engine-research-template.md`.
 - [ ] Copy `templates/` in as well (per-engine template travels with the repo).
 - [ ] Start `CREDITS.md` — the original game's creators + every tool you'll use.
 - [ ] Add `.gitignore` from this toolkit (blocks game assets/binaries/dumps).
 - [ ] If the engine has strong prior art (e.g. RE Engine → REFramework), add an
       `EXTERNAL-RESOURCES.md` pointing at the authoritative upstream docs.
+- [ ] Add an `inbox/` folder with the standard one-paragraph `inbox/README.md`
+      (copy it from any existing `-engine-research` repo — it explains the
+      hand-off convention between concurrent research and modding sessions).
 
 ## Toolchain (see SETUP.md)
 - [ ] Debugger (x64dbg) + x64dbg-automate bridge working.

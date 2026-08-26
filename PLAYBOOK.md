@@ -3,8 +3,10 @@
 A reusable, point-by-point method for taking a game whose engine **nobody has
 ever brought into VR** and getting it there. It is written for the hard case:
 no prior art, no existing profile, no one to ask. It has been distilled from
-real conversions and is meant to be copied into each project's
-`<project>-vr-engine-research` repo and followed at a self-directed pace.
+real conversions and is followed at a self-directed pace. **This copy is the
+canonical one** (since 2026-08-26): each project's `<project>-vr-engine-research`
+repo carries a `PLAYBOOK.md` that is a short pointer back to this file, so that an
+improvement lands in one place instead of being hand-synced across every project.
 
 > This document is engine-agnostic. Everything specific to a particular game
 > lives beside it in that project's `ENGINE-DOSSIER.md`, filled in from

@@ -25,8 +25,9 @@ setup steps, and the templates to spin up a new project.
 ## How to use it
 
 1. **New game?** Open [`templates/new-project-checklist.md`](templates/new-project-checklist.md)
-   and work top to bottom: scaffold the five repos, copy `PLAYBOOK.md` into the game's
-   `-vr-engine-research` repo, start its dossier from the template.
+   and work top to bottom: scaffold the repos, add the standard `PLAYBOOK.md` pointer file
+   (linking back to this toolkit's canonical copy) to the game's `-vr-engine-research` repo,
+   and start its dossier from the template.
 2. **Setting up a machine?** Follow [`SETUP.md`](SETUP.md) and install the skills in
    [`SKILLS.md`](SKILLS.md).
 3. **Working a conversion?** Follow the phases in [`PLAYBOOK.md`](PLAYBOOK.md); reach for
