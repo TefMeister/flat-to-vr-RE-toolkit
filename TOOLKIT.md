@@ -182,3 +182,28 @@ what approach they take, drawn from **publicly available, non-paywalled** inform
 | Need to **find the camera matrix** | x64dbg + x64dbg-automate + shader reflection (Phase 3) |
 | Need to **get our code in-process** | Proxy DLL (winmm/dinput8/version), forward all exports |
 | Need to **submit to a headset** | OpenVR/SteamVR or OpenXR (Phase 6) |
+
+## Tools we wrote (in `tools/`)
+
+Small, dependency-free PowerShell utilities that earned their place by being used
+in real sessions. Rule for this section is the same as the rest of the toolkit:
+**only things actually shipped with, not things that seemed like a good idea.**
+
+### `pe-inspect.ps1` — static PE inspection
+List/check exports, dump bytes at a virtual address or at an exported symbol.
+Reads the file **on disk** — no process, no debugger — so recon works without the
+game running, which matters when only the user may launch it.
+Use it to confirm a symbol really is exported (a raw string search cannot tell
+you that) and to check a function prologue before building an inline hook.
+
+### `capture-window.ps1` — capture a game window to PNG
+`PrintWindow` with `PW_RENDERFULLCONTENT`, which works for most D3D windows
+and does not need the window foreground. Falls back to a screen copy.
+**Use it before every live test.** Inferring game state from a derived number
+instead of looking at the frame is a documented way to lose a session.
+
+### `analyze-capture.ps1` — measure a capture
+`-Black` reports near-black percentage plus a column profile (measuring
+unrendered regions); `-Stereo` reports the horizontal disparity between the two
+eyes of a side-by-side capture (measuring the virtual depth of a HUD without a
+headset). Its output is **evidence, not a state check** — see above.
