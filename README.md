@@ -19,8 +19,28 @@ setup steps, and the templates to spin up a new project.
 | **[TOOLKIT.md](TOOLKIT.md)** | The tested tool list — for each tool: what it is, **why we use it**, which playbook phase it serves, and which of our games proved it. |
 | **[SKILLS.md](SKILLS.md)** | The Claude Code skills / plugins / MCP servers we rely on, with install and verify steps. |
 | **[SETUP.md](SETUP.md)** | Toolchain bootstrap — compiler, hooking library, Python, debugger + automation bridge, injection vectors. |
+| **[tools/](tools/)** | Small scripts written for one game and kept because they generalised — see the table below. |
 | **[templates/](templates/)** | `per-engine-research-template.md` (the dossier skeleton) and `new-project-checklist.md` (bootstrap a fresh VR-RE project). |
 | **[CREDITS.md](CREDITS.md)** | Everyone whose tools and research this builds on, and how to ask for a correction or removal. |
+
+### `tools/` — our own scripts
+
+Each was written for a specific game, then kept because it turned out to apply generally. All are
+PowerShell, no install, no dependencies.
+
+| Script | What it does | Proven on |
+|---|---|---|
+| [`pe-inspect.ps1`](tools/pe-inspect.ps1) | Check whether a module really exports given symbols; dump bytes at a VA or symbol. Reads the file on disk — no process, no debugger. | XIII, Psychonauts |
+| [`list-exports.ps1`](tools/list-exports.ps1) | Enumerate a PE's exports, regex-filtered. Parses the export directory rather than scanning strings, so it can *prove* a symbol is exported. | XIII |
+| [`capture-window.ps1`](tools/capture-window.ps1) | Screenshot one window by process name, including when it is not foreground. | XIII, Psychonauts |
+| [`analyze-capture.ps1`](tools/analyze-capture.ps1) | Measure a frame: near-black percentage with **row and column** profiles, or stereo disparity of a side-by-side capture. | Psychonauts |
+| [`send-key.ps1`](tools/send-key.ps1) | Synthetic keyboard input by DIK scancode. Usually works where mouse injection does not. | XIII, Psychonauts |
+| [`send-mouse.ps1`](tools/send-mouse.ps1) | Relative mouse motion. **Kept mainly as a fast negative** — it cannot beat DirectInput exclusive mode, and one run tells you so. | XIII (failed), Psychonauts (failed) |
+| [`unreal-nav.ps1`](tools/unreal-nav.ps1) | Closed-loop navigation from pose telemetry: turn to a heading, walk a measured distance. Lands a heading within ~1°. | XIII |
+
+**A warning worth repeating from inside two of these:** a rotator read from telemetry may already
+be *unwrapped*. Applying a shortest-arc wrap to it makes a real −199° turn read as +161°, which
+looks exactly like an input reversing direction. Confirm before you wrap.
 
 ## How to use it
 
