@@ -89,6 +89,29 @@ if ($Black) {
         if ($colTotal[$ci] -gt 0) { "{0,5:N1}" -f (100.0 * $colDark[$ci] / $colTotal[$ci]) } else { "  n/a" }
     }
     "{0,-20} black={1,6}%   columns L..R: {2}" -f (Split-Path $Path -Leaf), $pct, ($profile -join ' ')
+
+    # ROW profile too. Without this the output is horizontal-only, and reading a
+    # vertical claim ("the black is overhead") out of column data is impossible -
+    # a mistake actually made once, by eyeballing a single frame and
+    # generalising. Report both axes so the shape is never inferred.
+    $rowCount = 8
+    $rowDark  = New-Object 'int[]' $rowCount
+    $rowTotal = New-Object 'int[]' $rowCount
+    for ($yy = $Top; $yy -lt $Bottom; $yy += 2) {
+        $rowBase = $yy * $stride
+        $ri = [int](($yy - $Top) * $rowCount / [Math]::Max(1, ($Bottom - $Top)))
+        if ($ri -ge $rowCount) { $ri = $rowCount - 1 }
+        for ($ii = 0; $ii -lt $halfW; $ii += 2) {
+            $o = $rowBase + ($xStart + $ii) * 4
+            $lum = 0.299*$bytes[$o+2] + 0.587*$bytes[$o+1] + 0.114*$bytes[$o]
+            $rowTotal[$ri]++
+            if ($lum -lt $Threshold) { $rowDark[$ri]++ }
+        }
+    }
+    $rprofile = for ($ri = 0; $ri -lt $rowCount; $ri++) {
+        if ($rowTotal[$ri] -gt 0) { "{0,5:N1}" -f (100.0 * $rowDark[$ri] / $rowTotal[$ri]) } else { "  n/a" }
+    }
+    "{0,-20}                  rows  T..B: {1}" -f "", ($rprofile -join ' ')
 }
 
 if ($Stereo) {
