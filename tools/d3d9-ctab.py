@@ -58,7 +58,13 @@ def parse_ctab(data, ct):
         if base + name_off >= len(data):
             return None
         rows.append((cstr(data, base + name_off), regset, regidx, regcount))
-    return rows
+    # The target string ("vs_3_0"/"ps_3_0") is in the header and is part of a
+    # table's identity: the SAME constant name lands on a DIFFERENT register in
+    # a vertex vs a pixel shader, so merging the two invents contradictions.
+    tgt = cstr(data, base + target) if base + target < len(data) else ""
+    if not re.match(r"^(vs|ps)_\d_\d$", tgt):
+        tgt = "?"
+    return rows, tgt
 
 
 def collect(path):
@@ -67,18 +73,20 @@ def collect(path):
     tables = {}
     seen = 0
     for m in re.finditer(b"CTAB", data):
-        rows = parse_ctab(data, m.start())
-        if not rows:
+        parsed = parse_ctab(data, m.start())
+        if not parsed:
             continue
+        rows, tgt = parsed
         seen += 1
-        key = tuple(sorted(rows))
+        key = (tuple(sorted(rows)), tgt)
         tables[key] = tables.get(key, 0) + 1
     return seen, tables
 
 
 def print_table(key, count):
-    print("constant table  (%d shaders)" % count)
-    for name, regset, regidx, regcount in key:
+    rows, tgt = key
+    print("constant table  [%s]  (%d shaders)" % (tgt, count))
+    for name, regset, regidx, regcount in rows:
         kind = ""
         if regcount == 4:
             kind = "  <- 4x4 matrix"
@@ -95,7 +103,8 @@ def main():
     ap.add_argument("file")
     ap.add_argument("mode", choices=["list", "find", "summary"])
     ap.add_argument("pattern", nargs="?", help="regex (find mode), case-insensitive")
-    ap.add_argument("--limit", type=int, default=20, help="max tables to print")
+    ap.add_argument("--limit", type=int, default=20,
+                    help="max tables to print; 0 = no limit")
     args = ap.parse_args()
 
     seen, tables = collect(args.file)
@@ -109,8 +118,8 @@ def main():
         # Which register does each constant name usually land on?
         where = collections.defaultdict(collections.Counter)
         total = collections.Counter()
-        for key, n in tables.items():
-            for name, regset, regidx, regcount in key:
+        for (rows, tgt), n in tables.items():
+            for name, regset, regidx, regcount in rows:
                 where[name][(regidx, regcount)] += n
                 total[name] += n
         print("\nMost common constants, and the register they land on:")
@@ -124,15 +133,20 @@ def main():
         if not args.pattern:
             ap.error("find needs a pattern")
         rx = re.compile(args.pattern, re.I)
-        shown = 0
-        for key, count in sorted(tables.items(), key=lambda kv: -kv[1]):
-            if any(rx.search(r[0]) for r in key):
-                print_table(key, count)
-                shown += 1
-                if shown >= args.limit:
-                    break
-        if not shown:
+        matched = [(k, c) for k, c in sorted(tables.items(), key=lambda kv: -kv[1])
+                   if any(rx.search(r[0]) for r in k[0])]
+        if not matched:
             print("nothing matched %r" % args.pattern)
+            return
+        cap = len(matched) if args.limit == 0 else min(args.limit, len(matched))
+        for key, count in matched[:cap]:
+            print_table(key, count)
+        # Truncating in silence is how a capped sample gets published as a total.
+        print("%d layouts matched, %d shown, %d shaders in all matching layouts."
+              % (len(matched), cap, sum(c for _, c in matched)))
+        if cap < len(matched):
+            print("%d layouts NOT shown - re-run with --limit 0 for all."
+                  % (len(matched) - cap))
         return
 
     for n, (key, count) in enumerate(sorted(tables.items(), key=lambda kv: -kv[1])):
