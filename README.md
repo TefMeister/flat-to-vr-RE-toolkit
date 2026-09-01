@@ -32,6 +32,7 @@ PowerShell, no install, no dependencies.
 |---|---|---|
 | [`pe-inspect.ps1`](tools/pe-inspect.ps1) | Check whether a module really exports given symbols; dump bytes at a VA or symbol. Reads the file on disk — no process, no debugger. | XIII, Psychonauts |
 | [`list-exports.ps1`](tools/list-exports.ps1) | Enumerate a PE's exports, regex-filtered. Parses the export directory rather than scanning strings, so it can *prove* a symbol is exported. | XIII |
+| [`static-disasm.py`](tools/static-disasm.py) | Disassemble a function, follow its calls, or find every reference to an address - straight off the PE on disk. No debugger, no running process, x86 and x64. `func` / `xrefs` / `at` / `info`. | Psychonauts |
 | [`capture-window.ps1`](tools/capture-window.ps1) | Screenshot one window by process name, including when it is not foreground. | XIII, Psychonauts |
 | [`analyze-capture.ps1`](tools/analyze-capture.ps1) | Measure a frame: near-black percentage with **row and column** profiles, or stereo disparity of a side-by-side capture. | Psychonauts |
 | [`send-key.ps1`](tools/send-key.ps1) | Synthetic keyboard input by DIK scancode. Usually works where mouse injection does not. | XIII, Psychonauts |
