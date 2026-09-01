@@ -37,6 +37,65 @@ except ImportError:
     sys.exit("capstone is required:  python -m pip install capstone")
 
 
+class RawImage:
+    """A raw memory image dumped from a live process, addressed by VA.
+
+    Needed whenever the file on disk is packed, encrypted or self-modifying and
+    so does not contain the code that actually runs - dump the module out of the
+    running process once, then analyse it here forever without a debugger.
+    Manhunt (RenderWare, packed .text) is the case this was written for.
+
+    The dump is assumed to be a contiguous image starting at `base`, i.e. what
+    a "dump this module" tool produces. If the dump happens to start with a PE
+    header, its ImageBase is read from it and `base` need not be supplied.
+    """
+
+    def __init__(self, path, base=None, is64=False):
+        with open(path, "rb") as f:
+            self.data = f.read()
+        self.name = os.path.basename(path)
+        if base is None:
+            if self.data[:2] != b"MZ":
+                sys.exit("raw dump does not start with a PE header; pass --base")
+            e = int.from_bytes(self.data[0x3C:0x40], "little")
+            if self.data[e:e + 4] != b"PE\0\0":
+                sys.exit("raw dump has no PE signature; pass --base")
+            machine = int.from_bytes(self.data[e + 4:e + 6], "little")
+            is64 = machine == 0x8664
+            off = e + (0x30 if is64 else 0x34)
+            base = int.from_bytes(self.data[off:off + (8 if is64 else 4)], "little")
+        self.base = base
+        self.is64 = is64
+        self.sections = [{
+            "name": "raw", "va": base, "vsize": len(self.data),
+            "data": self.data, "exec": True,
+        }]
+        mode = capstone.CS_MODE_64 if is64 else capstone.CS_MODE_32
+        self.md = capstone.Cs(capstone.CS_ARCH_X86, mode)
+        self.md.detail = True
+
+    def section_of(self, va):
+        s = self.sections[0]
+        return s if s["va"] <= va < s["va"] + s["vsize"] else None
+
+    def read(self, va, size):
+        s = self.section_of(va)
+        if s is None:
+            return None
+        off = va - s["va"]
+        return s["data"][off:off + size]
+
+    def parse_va(self, text):
+        text = text.strip()
+        if text.startswith("+"):
+            return self.base + int(text[1:], 16)
+        v = int(text, 16)
+        return v if v >= self.base else self.base + v
+
+    def label(self, va):
+        return "%s+0x%X" % (self.name, va - self.base)
+
+
 class Image:
     """A PE mapped the way the loader would map it, so VAs work directly."""
 
@@ -165,9 +224,20 @@ def main():
     ap.add_argument("va", nargs="?", help="virtual address (0x..., or +RVA)")
     ap.add_argument("--depth", type=int, default=1, help="follow calls this many levels (func)")
     ap.add_argument("--count", type=int, default=32, help="instruction count (at)")
+    ap.add_argument("--raw", action="store_true",
+                    help="treat the input as a RAW memory image dumped from a live process, "
+                         "not a PE on disk. Use this when the on-disk file is packed and its "
+                         "code is only real once the process has unpacked it.")
+    ap.add_argument("--base", help="image base of a --raw dump (default: read from its PE header)")
+    ap.add_argument("--x64", action="store_true", help="force 64-bit decoding for a --raw dump")
     args = ap.parse_args()
 
-    img = Image(args.image)
+    if args.raw:
+        img = RawImage(args.image,
+                       base=int(args.base, 16) if args.base else None,
+                       is64=args.x64)
+    else:
+        img = Image(args.image)
 
     if args.mode == "info":
         print("%s  %s  ImageBase 0x%X" % (img.name, "x64" if img.is64 else "x86", img.base))
