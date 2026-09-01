@@ -24,3 +24,7 @@
 # Local scratch
 /tmp/
 *.log
+
+# Python bytecode from running tools/ in place
+__pycache__/
+*.pyc
