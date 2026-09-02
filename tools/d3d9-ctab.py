@@ -92,8 +92,14 @@ def print_table(key, count):
             kind = "  <- 4x4 matrix"
         elif regcount == 3:
             kind = "  <- 4x3 / 3x4"
-        print("    %-38s %-8s c%-4d x%-3d%s"
-              % (name, REGSET.get(regset, "?%d" % regset), regidx, regcount, kind))
+        # Stage repeated on every row (not just the table header above) so a
+        # row survives being grepped or copied out of context still knowing
+        # which stage it is. Its absence here is what let a vertex-shader
+        # ViewProjectionMatrix's c0 and a pixel-shader one's c3/c10 be read as
+        # the same register — see enslaved-vr modding-notes 2026-09-02,
+        # "view-projection c3/c10 are pixel shaders".
+        print("    %-38s %-6s %-8s c%-4d x%-3d%s"
+              % (name, tgt, REGSET.get(regset, "?%d" % regset), regidx, regcount, kind))
     print()
 
 
@@ -115,17 +121,23 @@ def main():
     if args.mode == "summary":
         print("%s: %d shader constant tables, %d distinct layouts"
               % (args.file, seen, len(tables)))
-        # Which register does each constant name usually land on?
+        # Which register does each constant name usually land on? Keyed by
+        # (stage, regidx, regcount), NOT just (regidx, regcount) - the same
+        # name lands on a different register per stage (RHI reserves separate
+        # vs/ps constant ranges), so merging vs and ps here is exactly the bug
+        # that mis-staged Enslaved's c3/c10 ViewProjectionMatrix as a second
+        # vertex-shader location when both were pixel shaders. See
+        # enslaved-vr modding-notes 2026-09-02.
         where = collections.defaultdict(collections.Counter)
         total = collections.Counter()
         for (rows, tgt), n in tables.items():
             for name, regset, regidx, regcount in rows:
-                where[name][(regidx, regcount)] += n
+                where[name][(tgt, regidx, regcount)] += n
                 total[name] += n
-        print("\nMost common constants, and the register they land on:")
+        print("\nMost common constants, and the register they land on (by stage):")
         for name, n in total.most_common(25):
             spots = where[name].most_common(2)
-            desc = ", ".join("c%d x%d (%d)" % (r, c, k) for (r, c), k in spots)
+            desc = ", ".join("%s c%d x%d (%d)" % (t, r, c, k) for (t, r, c), k in spots)
             print("  %-38s in %-7d %s" % (name, n, desc))
         return
 
