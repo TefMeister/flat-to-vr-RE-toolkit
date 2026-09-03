@@ -45,6 +45,31 @@ PowerShell, no install, no dependencies.
 be *unwrapped*. Applying a shortest-arc wrap to it makes a real −199° turn read as +161°, which
 looks exactly like an input reversing direction. Confirm before you wrap.
 
+### `lib/` — reusable C for the proxies themselves
+
+`tools/` is for analysis you run at a terminal. `lib/` is C you compile **into** a proxy DLL.
+
+| file | what it does |
+| --- | --- |
+| `d3d9ctab.{h,c}` | read a D3D9 shader's constant table (`CTAB`) at `CreateShader` time, and keep a pointer-keyed map of what each shader wants |
+
+**Why it exists.** Every D3D9-era conversion asks the same question at the same moment: *which
+register does THIS shader put the camera matrix in?* It cannot be assumed fixed — a skinning palette
+displaces it (`alan-wake-vr` c0/c192, `prince-of-persia-2008-vr` c0/c128) and samplers vary too
+(`alice-madness-returns-vr` s1/s3/s0/s2). A fixed register corrupts the other half of the corpus
+silently, in a way that still renders.
+
+**How it is validated.** It has no test of its own, deliberately — it is exercised by the two
+project suites that use it, against **55,803 real shipped shaders** between them, each compared with
+an independent Python implementation that finds tables a different way:
+
+- `staging/alan-wake-vr/proxy-d3d9` — 9,971 shaders (`bash build-selftest.sh`)
+- `staging/alice-madness-returns-vr/proxy-d3d9` — 45,832 shaders, plus hand-built synthetic
+  shaders that exercise the register-set guard (`bash build-stereo-test.sh`)
+
+Both were run before and after the factoring and produce identical numbers in every bucket. If you
+change `d3d9ctab.c`, run both.
+
 ## How to use it
 
 1. **New game?** Open [`templates/new-project-checklist.md`](templates/new-project-checklist.md)
