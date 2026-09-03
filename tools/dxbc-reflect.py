@@ -16,6 +16,7 @@ need to understand the game's archive.
   list     <file>            every distinct constant buffer, with variables
   find     <file> <regex>    only buffers/variables whose name matches
   summary  <file>            how many shaders, buffers, and the common names
+  bind     <file> [regex]    which register (b#) each constant buffer binds to
 
 Examples
 --------
@@ -162,24 +163,65 @@ def parse_rdef(data, at):
     return out
 
 
+def parse_bindings(data, at):
+    """Parse an RDEF chunk's resource-binding table. Returns [(name, bind_point)]
+    for constant buffers only.
+
+    Each record is 8 uint32s:
+        NameOffset, ShaderInputType, ReturnType, ViewDimension,
+        NumSamples, BindPoint, BindCount, Flags
+
+    ShaderInputType 0 is D3D_SIT_CBUFFER. The record layout is easy to get
+    subtly wrong and a wrong BindPoint would look perfectly plausible, so
+    collect() cross-checks every binding name against a real cbuffer name and
+    reports any that do not line up rather than printing them.
+    """
+    try:
+        (_cb_count, _cb_off, res_count, res_off,
+         _vmin, _vmaj, _ptype, _flags, _creator) = struct.unpack_from("<IIIIBBHII", data, at)
+    except struct.error:
+        return []
+
+    out = []
+    for i in range(min(res_count, 128)):
+        base = at + res_off + i * 32
+        if base + 32 > len(data):
+            break
+        name_off, sit, _rt, _dim, _ns, bind_point, _bind_count, _f = struct.unpack_from(
+            "<IIIIIIII", data, base)
+        if sit != 0:            # not a cbuffer
+            continue
+        out.append((cstr(data, at + name_off), bind_point))
+    return out
+
+
 def collect(path):
     with open(path, "rb") as f:
         data = f.read()
     shaders = 0
     buffers = {}          # (name, size, vars-tuple) -> count
+    binds = {}            # (cbuffer name, b#)      -> count
+    orphans = 0           # bindings whose name is no cbuffer in the same shader
     for base, _size in find_dxbc(data):
         got = False
         for fourcc, coff, csize in chunks(data, base):
             if fourcc != b"RDEF":
                 continue
             got = True
+            names = set()
             for cb in parse_rdef(data, coff):
                 key = (cb["name"], cb["size"],
                        tuple((v["name"], v["offset"], v["size"]) for v in cb["vars"]))
                 buffers[key] = buffers.get(key, 0) + 1
+                names.add(cb["name"])
+            for bname, bpoint in parse_bindings(data, coff):
+                if bname in names:
+                    binds[(bname, bpoint)] = binds.get((bname, bpoint), 0) + 1
+                else:
+                    orphans += 1
         if got:
             shaders += 1
-    return data, shaders, buffers
+    return data, shaders, buffers, binds, orphans
 
 
 def print_cb(key, count):
@@ -201,12 +243,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("file")
-    ap.add_argument("mode", choices=["list", "find", "summary"])
+    ap.add_argument("mode", choices=["list", "find", "summary", "bind"])
     ap.add_argument("pattern", nargs="?", help="regex (find mode), matched case-insensitively")
     ap.add_argument("--limit", type=int, default=40, help="max buffers to print")
     args = ap.parse_args()
 
-    data, shaders, buffers = collect(args.file)
+    data, shaders, buffers, binds, orphans = collect(args.file)
 
     if not shaders:
         sys.exit("no DXBC shaders with an RDEF chunk found in %s "
@@ -221,6 +263,29 @@ def main():
         print("\nMost common constant-buffer names:")
         for name, n in by_name.most_common(20):
             print("  %-40s in %d shaders" % (name, n))
+        return
+
+    if args.mode == "bind":
+        rx = re.compile(args.pattern, re.I) if args.pattern else None
+        if orphans:
+            print("WARNING: %d cbuffer binding(s) named something that is not a cbuffer in the "
+                  "same shader -- the record layout may be misread; treat the numbers below with "
+                  "suspicion" % orphans)
+        else:
+            print("every cbuffer binding name matched a cbuffer in the same shader "
+                  "(%d shaders) -- the binding table is being read correctly\n" % shaders)
+        by_name = collections.defaultdict(dict)
+        for (name, bpoint), n in binds.items():
+            if rx and not rx.search(name):
+                continue
+            by_name[name][bpoint] = by_name[name].get(bpoint, 0) + n
+        rows = sorted(by_name.items(), key=lambda kv: -sum(kv[1].values()))
+        for name, points in rows[:args.limit]:
+            spread = ", ".join("b%d in %d shaders" % (p, n)
+                               for p, n in sorted(points.items(), key=lambda kv: -kv[1]))
+            print("%-40s %s" % (name, spread))
+        if not rows:
+            print("nothing matched %r" % args.pattern)
         return
 
     if args.mode == "find":
