@@ -48,6 +48,15 @@ KEYS = {
     "f1": (0x3B, False), "f2": (0x3C, False), "f3": (0x3D, False), "f4": (0x3E, False),
     "f5": (0x3F, False), "f6": (0x40, False), "f7": (0x41, False), "f8": (0x42, False),
     "f9": (0x43, False), "f10": (0x44, False), "f11": (0x57, False), "f12": (0x58, False),
+    # NUMPAD keys - NON-extended, which is the whole point. The same scancode with
+    # the extended flag is the navigation-cluster key instead (0x50 extended = Down
+    # arrow, 0x50 plain = numpad-2). Probes that read GetAsyncKeyState often accept
+    # EITHER the numpad VK or the navigation VK precisely so NumLock cannot break
+    # them (mad-max-vr's cbfp does), in which case these work whatever NumLock is set to.
+    "numpad0": (0x52, False), "numpad1": (0x4F, False), "numpad2": (0x50, False),
+    "numpad3": (0x51, False), "numpad4": (0x4B, False), "numpad5": (0x4C, False),
+    "numpad6": (0x4D, False), "numpad7": (0x47, False), "numpad8": (0x48, False),
+    "numpad9": (0x49, False),
 }
 
 
