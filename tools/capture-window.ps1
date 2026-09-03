@@ -4,6 +4,18 @@
   Direct3D windows, and without needing the window to be foreground.
 
 .DESCRIPTION
+  !! 2026-09-03 WARNING - PREFER tools/game-harness.py FOR ANYTHING STATE-SENSITIVE.
+  PrintWindow returns correct frames only WHILE THE GAME IS PRESENTING. Once the game
+  stops - paused, in a menu, mid-load - it silently keeps serving the last
+  DWM-composited frame, indefinitely and with no error. It is therefore wrong exactly
+  when the picture matters most ("is it paused?", "did the menu open?", "has it
+  loaded?"). Verified live against ENSLAVED: six consecutive captures were identical
+  and a frame delta repeated at exactly 6.91 while the game actually sat in a pause
+  menu; a BitBlt of the same window showed the menu immediately.
+  This script is still fine for a one-off grab of a game you know is rendering, and it
+  has the advantage of working when the window is occluded. game-harness.py uses BitBlt,
+  which needs the window unoccluded but never lies.
+
   Uses PrintWindow with PW_RENDERFULLCONTENT (0x2), which captures many D3D
   windows that a plain screen copy renders as black, and works while the window
   is behind others. Falls back to a screen-region copy if PrintWindow fails.
