@@ -26,6 +26,8 @@ Usage:
     python game-harness.py <window-substring> key enter
     python game-harness.py <window-substring> key down --repeat 3
     python game-harness.py <window-substring> mouse 40 0 --repeat 120
+    python game-harness.py <window-substring> hold w 1.5
+    python game-harness.py <window-substring> click 960 540     # left-click at CLIENT x,y
     python game-harness.py <window-substring> watch 6 0.4      # is it rendering?
 """
 import ctypes, ctypes.wintypes as w, time, sys, os
@@ -35,6 +37,7 @@ SRCCOPY = 0x00CC0020
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
 KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE = 0x0001, 0x0002, 0x0008
 MOUSEEVENTF_MOVE = 0x0001
+MOUSEEVENTF_ABSOLUTE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x8000, 0x0002, 0x0004
 
 # Scancodes. `ext` marks the EXTENDED keys - get this wrong and the key silently does nothing.
 KEYS = {
@@ -43,6 +46,7 @@ KEYS = {
     "up": (0x48, True), "down": (0x50, True), "left": (0x4B, True), "right": (0x4D, True),
     "w": (0x11, False), "a": (0x1E, False), "s": (0x1F, False), "d": (0x20, False),
     "q": (0x10, False), "e": (0x12, False), "c": (0x2E, False), "f": (0x21, False),
+    "r": (0x13, False), "u": (0x16, False), "i": (0x17, False), "v": (0x2F, False), "x": (0x2D, False),
     "lshift": (0x2A, False), "lalt": (0x38, False), "lctrl": (0x1D, False),
     "end": (0x4F, True), "pagedown": (0x51, True), "home": (0x47, True),
     "f1": (0x3B, False), "f2": (0x3C, False), "f3": (0x3D, False), "f4": (0x3E, False),
@@ -168,6 +172,18 @@ def mouse(dx, dy, repeat=1, gap=0.012):
         time.sleep(gap)
 
 
+def click(hwnd, cx, cy, hold_s=0.12):
+    """Left-click at CLIENT coordinates (cx, cy): move the cursor there absolutely, press, release."""
+    pt = w.POINT(int(cx), int(cy))
+    u.ClientToScreen(hwnd, ctypes.byref(pt))
+    u.SetCursorPos(pt.x, pt.y); time.sleep(0.15)
+    for fl in (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP):
+        i = INPUT(type=INPUT_MOUSE, u=_I(mi=MOUSEINPUT(0, 0, 0, fl, 0, None)))
+        u.SendInput(1, ctypes.byref(i), ctypes.sizeof(INPUT))
+        time.sleep(hold_s)
+    time.sleep(0.4)
+
+
 def delta(a, b):
     from PIL import ImageChops, ImageStat
     return ImageStat.Stat(ImageChops.difference(a.convert("L"), b.convert("L"))).mean[0]
@@ -200,6 +216,8 @@ if __name__ == "__main__":
     elif cmd == "mouse":
         rep = int(rest[rest.index("--repeat") + 1]) if "--repeat" in rest else 1
         mouse(int(rest[0]), int(rest[1]), rep); print("moved mouse %sx" % rep)
+    elif cmd == "click":
+        click(hwnd, rest[0], rest[1]); print("clicked client (%s,%s)" % (rest[0], rest[1]))
     elif cmd == "watch":
         n = int(rest[0]) if rest else 6
         gap = float(rest[1]) if len(rest) > 1 else 0.4
