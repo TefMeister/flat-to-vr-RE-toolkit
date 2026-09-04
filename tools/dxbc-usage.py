@@ -167,24 +167,67 @@ def main():
         for slot in seen:
             hist[key][slot] += 1
         if s["stage"] == "vs":
-            # Walk back from the o0 write through the temps that feed it, up
-            # to a few hops, and collect every cb reference on that path.
-            writes = {}
-            for line in body:
+            # Walk back from the o0 write through the temps that feed it and
+            # collect every cb reference on that path.
+            #
+            # ⚠️ PROGRAM ORDER IS LOAD-BEARING (fixed 2026-09-04). The first
+            # version of this walk indexed every write by register NAME with no
+            # regard to position in the shader, so reaching `r0` pulled in
+            # *every* write to r0 anywhere in the body - including writes that
+            # happen AFTER the o0 write and therefore cannot feed it. Registers
+            # are aggressively reused, so that is not a corner case: in Mad Max
+            # shader 0282, r0 feeds o0 near the top and is then reloaded with an
+            # unrelated cb1[18..21] transform whose result goes to o3, and the
+            # old walk reported slots 18..21 as feeding SV_Position in 16
+            # shaders. They do not. Only writes strictly BEFORE the consumer are
+            # candidates now, and each hop takes the LAST such write - which is
+            # the one D3D bytecode semantics say is live.
+            #
+            # This still over-approximates in one direction on purpose: no
+            # component masking (a write to r0.x is treated as a write to r0),
+            # so a slot can be listed when only an unused channel of a shared
+            # register carried it. It never under-approximates. Treat section D
+            # as "these slots are on the position path", not as a proof that
+            # every listed slot reaches o0.
+            writes = []                       # (index, regname, sources) in program order
+            for i, line in enumerate(body):
                 m = re.match(r"\s*\w+(?:_sat)?\s+([or]\d+)\.\w+,\s*(.*)", line)
                 if m:
-                    writes.setdefault(m.group(1), []).append(m.group(2))
-            frontier, visited, refs = ["o0"], set(), set()
-            for _hop in range(4):
+                    writes.append((i, m.group(1), m.group(2)))
+
+            def last_write_before(regname, limit):
+                found = None
+                for i, rn, src in writes:
+                    if i >= limit:
+                        break
+                    if rn == regname:
+                        found = (i, src)
+                return found
+
+            # Every write to o0 is a consumer; o0.xyzw is often built in pieces.
+            frontier = [(i, "o0") for i, rn, _ in writes if rn == "o0"]
+            visited, refs = set(), set()
+            for _hop in range(6):
                 nxt = []
-                for regname in frontier:
-                    if regname in visited:
+                for limit, regname in frontier:
+                    if (limit, regname) in visited:
                         continue
-                    visited.add(regname)
-                    for src in writes.get(regname, []):
+                    visited.add((limit, regname))
+                    w = last_write_before(regname, limit) if regname != "o0" else None
+                    srcs = []
+                    if regname == "o0":
+                        srcs = [src for i, rn, src in writes if rn == "o0" and i == limit]
+                        at = limit
+                    elif w:
+                        at, src = w
+                        srcs = [src]
+                    else:
+                        continue
+                    for src in srcs:
                         for cbn, slot in REF_RE.findall(src):
                             refs.add((int(cbn), int(slot)))
-                        nxt.extend(re.findall(r"\br(\d+)\.", src) and ["r" + t for t in re.findall(r"\br(\d+)\.", src)] or [])
+                        for t in re.findall(r"\br(\d+)\.", src):
+                            nxt.append((at, "r" + t))
                 frontier = nxt
             for cbn, slot in refs:
                 name = s["bind"].get(cbn, "cb%d?" % cbn)
