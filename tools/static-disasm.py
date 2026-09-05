@@ -265,6 +265,21 @@ def main():
         hits = find_xrefs(img, va)
         if not hits:
             print("no references to 0x%08X found" % va)
+            if img.is64:
+                # 2026-09-05: an empty result here is easy to read as "nothing
+                # references this". It does not mean that. On x64 most data
+                # references are RIP-relative (lea/mov reg,[rip+disp32]), which
+                # this scanner does not decode -- it matches only E8/E9 rel32
+                # and whole 8-byte absolute pointers. So an empty result on a
+                # 64-bit image is weak evidence of absence, and close to none
+                # for a data address.
+                print("")
+                print("  ** 64-bit image: this is NOT evidence that nothing references it. **")
+                print("  This scanner sees only E8/E9 rel32 and absolute 8-byte pointers.")
+                print("  Most x64 data references are RIP-relative (lea/mov reg,[rip+disp32])")
+                print("  and are INVISIBLE to it. To rule a reference out you must decode")
+                print("  rip-relative operands too -- see riprefs.py in doom-2016-vr/dev-archive/")
+                print("  recon/2026-09-05-reflection-eye-field-hunt/tools/.")
         for addr, sect, kind in hits:
             print("0x%08X  [%s]  %s" % (addr, sect, kind))
 
