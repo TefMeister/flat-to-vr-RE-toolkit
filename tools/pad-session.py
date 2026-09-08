@@ -24,6 +24,7 @@ METHOD NOTE - why a shot after every step
 Script syntax (one step per line, '#' comments ignored):
     wait <secs>
     shot <path>
+    key <name> <secs>                    keyboard tap via game-harness.py
     press <pad> <BUTTON> <secs>          e.g. press 1 A 0.30
     stick <pad> <left|right> <x> <y> <secs>
     trigger <pad> <left|right> <0..1> <secs>
@@ -79,6 +80,14 @@ def main():
                 subprocess.run([sys.executable, HARNESS, window, "shot", parts[1]],
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 print("  shot -> %s" % parts[1])
+            elif op == "key":
+                # A KEYBOARD tap, through the same harness. Needed because the
+                # decisive measurement is often not a pixel but a proxy dump
+                # triggered by a hotkey - e.g. reading hfov out of the matrix
+                # instead of guessing it from how wide the picture looks.
+                subprocess.run([sys.executable, HARNESS, window, "hold", parts[1], parts[2]],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print("  key %s held %ss" % (parts[1], parts[2]))
             elif op == "press":
                 pad = pads[int(parts[1])]
                 pad.press_button(button=buttons[parts[2].upper()])
