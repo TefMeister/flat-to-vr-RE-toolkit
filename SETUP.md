@@ -18,8 +18,7 @@ separately from [`SKILLS.md`](SKILLS.md).
 - **Ghidrust** (static decompiler with an MCP server): https://github.com/oofz/Ghidrust.
   Needs Git and Rust (https://rustup.rs/). `git clone https://github.com/oofz/Ghidrust`, run
   `cargo build --release` in it, then register it with Claude Code:
-  `claude mcp add --scope user ghidrust -- <clone>	arget
-elease\ghidrust.exe mcp`, and
+  `claude mcp add --scope user ghidrust -- <clone>/target/release/ghidrust.exe mcp`, and
   restart Claude Code.
 - **A hex / binary viewer** for quick structural reads and dump inspection.
 - **Python 3** on `PATH` — offline capture analysis, frame-diffing, and driving

@@ -97,8 +97,7 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
   into a design decision. It was also used in the RE Village sky hunt.
 - **Phase:** 0, 3. **Proven on:** RE2 (2026-09-05), RE Village.
 - **Setup:** build from source with Rust (`cargo build --release`), then
-  `claude mcp add --scope user ghidrust -- <path>	arget
-elease\ghidrust.exe mcp`. See
+  `claude mcp add --scope user ghidrust -- <path>/target/release/ghidrust.exe mcp`. See
   [`SETUP.md`](SETUP.md).
 
 ---
