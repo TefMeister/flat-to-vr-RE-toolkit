@@ -24,6 +24,9 @@ credited, or ask us to stop" section at the bottom.
 | MinHook — function-hooking library | Tsuda Kageyu (TsudaKageyu) and contributors | https://github.com/TsudaKageyu/minhook |
 | x64dbg — debugger | mrexodia, Sigma, tr4ceflow, Dreg, Nukem, Herz3h, torusrxxx, and the x64dbg contributor community | https://github.com/x64dbg/x64dbg |
 | x64dbg-automate — remote-automation plugin + Python client (and the x64dbg MCP server) | dariushoule (Darius Houle) | https://github.com/dariushoule/x64dbg-automate |
+| Ghidrust — Rust reverse-engineering toolkit with a decompiler and MCP server; used to decompile game functions statically. Apache-2.0 | oofz | https://github.com/oofz/Ghidrust |
+| MCP for Blender (formerly blender-mcp) — lets Claude drive Blender. MIT | ahujasid (Siddharth Ahuja) and contributors | https://github.com/ahujasid/mcp-for-blender |
+| Blender — 3D suite | the Blender Foundation and community | https://www.blender.org/ |
 | x64dbg-skills — reverse-engineering skill guides for Claude Code | dariushoule (Darius Houle) | https://github.com/dariushoule/x64dbg-skills |
 | Superpowers — the Claude Code skills framework we work inside | Jesse Vincent (GitHub: obra) and contributors at Prime Radiant | https://github.com/obra/superpowers |
 | EMV-Engine — REFramework Lua toolkit; a hook-timing technique from its bone-posing tool was studied and reused (as technique, not copied code). MIT licensed. | alphaZomega (alphazolam) | https://github.com/alphazolam/EMV-Engine |

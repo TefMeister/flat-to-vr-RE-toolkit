@@ -15,9 +15,28 @@ separately from [`SKILLS.md`](SKILLS.md).
   https://github.com/dariushoule/x64dbg-automate. Follow its README to drop the plugin
   into x64dbg's `plugins` folder and install the Python client. This is the bridge the
   `x64dbg-skills` and the x64dbg MCP server drive.
+- **Ghidrust** (static decompiler with an MCP server): https://github.com/oofz/Ghidrust.
+  Needs Git and Rust (https://rustup.rs/). `git clone https://github.com/oofz/Ghidrust`, run
+  `cargo build --release` in it, then register it with Claude Code:
+  `claude mcp add --scope user ghidrust -- <clone>	arget
+elease\ghidrust.exe mcp`, and
+  restart Claude Code.
 - **A hex / binary viewer** for quick structural reads and dump inspection.
 - **Python 3** on `PATH` — offline capture analysis, frame-diffing, and driving
   x64dbg-automate.
+
+### 3D assets (optional) — Blender + Blender MCP
+
+1. Install Blender from the official site: https://www.blender.org/download/
+2. Install uv (https://docs.astral.sh/uv/). The MCP server runs through `uvx`.
+3. `claude mcp add --scope user blender -- uvx mcp-for-blender`
+4. `uvx mcp-for-blender install-addon`
+5. In Blender: Edit → Preferences → Add-ons → enable **Interface: MCP for Blender**.
+6. In the 3D viewport press **N** → **MCP for Blender** tab → **Start MCP Server**.
+7. Restart Claude Code.
+
+Project page: https://github.com/ahujasid/mcp-for-blender. The **lanes** plugin's `/lanes:setup`
+walks through all of the tools on this page, installing each one or giving you its link.
 
 ## 1. Building the mod DLL
 

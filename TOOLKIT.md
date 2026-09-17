@@ -86,6 +86,21 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 - **Paired with:** the **x64dbg MCP server** and **x64dbg-skills** — see
   [`SKILLS.md`](SKILLS.md).
 
+### Ghidrust — oofz
+- **Link:** https://github.com/oofz/Ghidrust (Apache-2.0)
+- **What:** A Rust reverse-engineering toolkit inspired by Ghidra (not a fork): loads PE/ELF,
+  runs auto-analysis, lists strings/imports/cross-references, and **decompiles functions to
+  pseudo-C**, from a CLI or an **MCP server** a session can call directly.
+- **Why we use it:** It reads the game's *compiled* code with nothing running, which x64dbg cannot.
+  On `re2.exe` it decompiled the aim-joint setup and joint-constraint functions, and showed that the
+  support-hand joint is an *anchor* rather than the weapon-to-hand attach. That turned a dead end
+  into a design decision. It was also used in the RE Village sky hunt.
+- **Phase:** 0, 3. **Proven on:** RE2 (2026-09-05), RE Village.
+- **Setup:** build from source with Rust (`cargo build --release`), then
+  `claude mcp add --scope user ghidrust -- <path>	arget
+elease\ghidrust.exe mcp`. See
+  [`SETUP.md`](SETUP.md).
+
 ---
 
 ## VR runtimes (Phase 6 — the North Star)
@@ -169,6 +184,10 @@ what approach they take, drawn from **publicly available, non-paywalled** inform
   a reliable fallback. See [`SETUP.md`](SETUP.md). **Phase:** 1 onward.
 - **A hex / binary viewer** — quick structural reads of the binary and dumps.
   **Phase:** 0.
+- **Blender + Blender MCP** — https://www.blender.org/download/ and
+  https://github.com/ahujasid/mcp-for-blender (MIT, ahujasid). Lets a session build and edit 3D
+  scenes in a running Blender: weapon remakes, reference props, mesh work with game-format add-ons.
+  **Phase:** 7 (polish and assets).
 
 ---
 
