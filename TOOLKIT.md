@@ -119,7 +119,37 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 - **Why we use it:** The portable alternative to OpenVR for the runtime layer; UEVR's
   OpenXR path is our reference for how to do per-eye swapchain submission and pose
   sampling cleanly.
-- **Phase:** 6.
+- **Phase:** 6. **Decision 2026-09-18:** OpenXR is now our **default output path** for new
+  VR work. Reasons: the tooling around it is deeper, Virtual Desktop + Quest 3 is the
+  household's actual setup, and OpenXR is what the desktop simulator below can stand in for.
+
+### OpenXR-Simulator — fholger, extended by elliotttate and webhead2oo9
+- **Link:** https://github.com/webhead2oo9/OpenXR-Simulator (the fork we use) ·
+  original: https://github.com/fholger/OpenXR-Simulator
+- **What:** A desktop OpenXR *runtime*. Any OpenXR application launched against it renders
+  into a normal resizable window as a side-by-side stereo pair, with mouse/keyboard head
+  control. MIT.
+- **Why we use it:** It takes the headset out of the inner loop. The fork reproduces the
+  measured per-eye FOV, panel resolution and IPD of ten headsets (Quest 2/3/Pro, Index,
+  Vive Pro 2, Reverb G2, PS VR2, PICO 4, Bigscreen Beyond), so a projection error that only
+  shows at one headset's FOV becomes reproducible at a desk. Frame timing is measured from
+  real stereo `xrEndFrame` submissions, not window repaints, and `F3` gives rolling p50/p95.
+  It ships a 32-bit runtime too, which several of our targets need.
+- **How to use it without disturbing your headset setup:** set `XR_RUNTIME_JSON` for the one
+  process, **not** the machine-wide runtime — `activate_simulator.ps1` changes the system
+  default and has to be undone afterwards. Per-process leaves Virtual Desktop, SteamVR and
+  Quest Link untouched.
+- **It also ships an MCP server** (`mcp-server/`): per-eye screenshots, frame diagnostics,
+  quad-layer flicker detection, `set_head_pose` / `set_fov` / `set_ipd` /
+  `set_headset_profile`, `enable_pose_sweep`, `enable_anaglyph_preview` and `validate_stereo`.
+  That is an agent-drivable stereo test rig — it answers the questions a session normally has
+  to spend a human's eyes on.
+- **The limit:** it is an OpenXR runtime. It does nothing for a mod that renders stereo itself
+  into the game's own swapchain. It is a reason to choose OpenXR as the output path, not a
+  free win for an existing custom-stereo mod.
+- **Phase:** 6. **Proven on:** dev PC, 2026-09-18 — `tools/openxr-probe/` PASS, 30/30 frames,
+  two stereo views, asymmetric mirrored FOV, 64.0 mm eye separation, p50 16.6 ms
+  `[verified-live 2026-09-18, n=1]`.
 
 ---
 
@@ -225,3 +255,20 @@ instead of looking at the frame is a documented way to lose a session.
 unrendered regions); `-Stereo` reports the horizontal disparity between the two
 eyes of a side-by-side capture (measuring the virtual depth of a HUD without a
 headset). Its output is **evidence, not a state check** — see above.
+
+### `openxr-probe/xr_probe.py` — will the VR plumbing hold, with no headset and no game?
+The one tool here that is Python rather than PowerShell, and the one with dependencies
+(`pip install pyopenxr`); it earns the exception because nothing else can answer this
+question without a headset. It creates a real OpenXR session against whichever runtime you
+point it at, submits N genuine projection-layer frames, and **exits 0 or 1**. The printout
+gives the advertised extensions, both eyes' render-target sizes, per-eye FOV and position,
+the derived eye separation, the swapchain format, and p50/p95 frame time.
+
+`--runtime <path>` sets `XR_RUNTIME_JSON` **for that process only**, so the machine-wide
+runtime is never touched — always prefer it over activating a runtime system-wide.
+
+Each eye is cleared to a different colour on purpose (left purple, right green): a capture
+showing one colour in both panes means the eyes are not actually separate. Don't "tidy" that
+into a single clear colour.
+
+Idea credit: webhead2oo9's `probe/xr_probe.cpp` — see `CREDITS.md`.

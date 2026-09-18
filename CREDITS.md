@@ -35,6 +35,9 @@ credited, or ask us to stop" section at the bottom.
 | OpenXR — cross-vendor VR runtime standard | The Khronos Group and contributors | https://www.khronos.org/openxr/ |
 | R.E.A.L. VR mods (alternate-eye D3D injection *concept* only — GTA V repo is source-available but unlicensed/all-rights-reserved; framework free w/ donations since Mar 2026, Cyberpunk 2077 excluded; no code, gated, or proprietary material used) | Luke Ross | https://github.com/LukeRoss00/gta5-real-mod · https://www.patreon.com/realvr |
 | vorpX — commercial VR injection driver, referenced only as public prior art (closed source; no code inspected or reused) | Ralf Ostertag / Animation Labs | https://www.vorpx.com |
+| OpenXR-Simulator — a desktop OpenXR runtime that renders a VR app into a window, so stereo work can be developed and measured with no headset attached. MIT | fholger (original), extended by elliotttate, and further by webhead2oo9 (Vulkan backend, ten measured headset profiles, real `xrEndFrame` timing, 32-bit runtime, and the MCP server) | https://github.com/fholger/OpenXR-Simulator · https://github.com/elliotttate/OpenXR-Simulator · https://github.com/webhead2oo9/OpenXR-Simulator |
+| The "runtime probe" idea behind `tools/openxr-probe/` — replay the exact API sequence a mod depends on and make the answer an exit code. Studied as a technique from `probe/xr_probe.cpp`; our version is written from scratch in Python, no code copied | webhead2oo9 | https://github.com/webhead2oo9/OpenXR-Simulator |
+| pyopenxr — Python bindings for OpenXR, which `tools/openxr-probe/` is built on | Christopher Bruns (cmbruns) and contributors | https://github.com/cmbruns/pyopenxr |
 | AI development assistance | Claude (Anthropic) | https://www.anthropic.com |
 
 Project lead and author: **TefMeister**.
