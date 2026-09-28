@@ -17,7 +17,8 @@ setup, done together:
 1. **A save past the tutorials** that always loads in the same spot. The person plays to it and says which
    slot it is (`note route.json "..."` keeps it in the route).
 2. **The menus.** For each screen, the person says which button gets past it. Simplest: they play through the
-   menus once while `record` runs (below) and tap **numpad +** on every screen that must be waited for.
+   menus once while `record` runs (below): **numpad +** on a screen that needs a key, **numpad −** on one that
+   just needs waiting for.
 3. **The controls.** The person names the minimum buttons to move and look, and how they behave ("hold W about a
    second before the car moves"). Keep it with `note`.
 4. **The input check.** Before recording anything, `probe <window> w --seconds 1.5 --region x,y,w,h` holds each
@@ -26,8 +27,8 @@ setup, done together:
    that is known at once instead of being mistaken for a slow load.
 5. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
    press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
-   guessed. They tap **numpad +** wherever the replay should check it arrived (a screen, a landmark, a map
-   label), preferably standing still, and **numpad −** to stop. Numpad + and − never reach the game. Then
+   guessed. On each screen they tap **numpad +** if a key is needed there (then press it), or **numpad −** if it just
+   needs waiting for (a logo, a loading screen, a video), and **numpad \*** to stop. These three never reach the game. Then
    `mark-image route.json N name --region x,y,w,h` turns marker N's saved picture into a checkpoint; the picture
    stays on the PC.
 
@@ -155,6 +156,11 @@ Recorded routes belong with each game's control profile in `ai-game-control-prof
 (`routes/<game>/<route>.json`), next to the prose routes and hazards already written there.
 
 ## Tests
+
+**First game set up together: Burnout Paradise, 2026-09-28.** Tefa played from launch to driving in the city once
+while it recorded; the recording showed what guessing had missed ("Press Any Button" appears a moment after the
+title, and Enter before it is ignored). The route then replayed from a closed game twice in a row, 118 s and 161 s,
+every checkpoint matched, no key pressed twice.
 
 The recorder was tried on Notepad the same day: recorded typing (a held key, a tap, a marker) replayed from a
 closed Notepad with the same result, and its marker became a working checkpoint.
