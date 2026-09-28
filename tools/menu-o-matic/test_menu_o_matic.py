@@ -89,6 +89,18 @@ after = with_corner(b, (0, 200, 0))
 only = R.changed_regions(before, after, noise_before)
 check("self-moving part is ignored", len(only) == 1 and R.region_pixels(only[0], a.size)[1] < 400)
 
+# Still pictures (frozen game) and click points
+w_ = R.StillWatch()
+check("a new picture starts the still clock at 0", w_.update(a, 100.0) == 0)
+check("the same picture keeps the clock running", w_.update(menu(0), 130.0) == 30.0)
+check("a changed picture resets it", w_.update(b, 131.0) == 0)
+check("parse_point accepts fractions", R.parse_point("0.5,0.62") == [0.5, 0.62])
+try:
+    R.parse_point("600,400")
+    check("parse_point rejects pixels", False)
+except ValueError:
+    check("parse_point rejects pixels", True)
+
 # Route files
 with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, "routes", "test.json")
