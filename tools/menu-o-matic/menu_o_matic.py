@@ -174,12 +174,21 @@ def cmd_run(a):
             W.tap(step["key"], hwnd)
             say(event="key", step=i, key=step["key"])
         elif "wait" in step:
+            # "repress": N  = if the screen has not come after N seconds, press the previous key again.
+            # Some screens ignore a key while they are still fading in (Burnout's title, 2026-09-28).
             end = time.time() + (step.get("timeout") or a.timeout)
+            repress = step.get("repress")
+            last_key = next((s["key"] for s in reversed(route["steps"][:i]) if "key" in s), None)
+            next_press = time.time() + repress if repress and last_key else None
             d = 255.0
             while time.time() < end:
                 d, ok = R.matches(route, step["wait"], W.capture(hwnd))
                 if ok:
                     break
+                if next_press and time.time() >= next_press:
+                    W.tap(last_key, hwnd)
+                    say(event="repress", step=i, key=last_key)
+                    next_press = time.time() + repress
                 time.sleep(POLL_S)
             else:
                 lost(route, i, step, hwnd, a.lost_dir, d)

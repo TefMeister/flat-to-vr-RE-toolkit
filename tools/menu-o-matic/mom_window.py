@@ -13,7 +13,9 @@ u, g = ctypes.windll.user32, ctypes.windll.gdi32
 
 # ---- Settings ----------------------------------------------------------------
 FOCUS_SETTLE_S = 0.30   # after bringing the window to the front
-KEY_HOLD_S = 0.07       # how long a tapped key stays down
+KEY_HOLD_S = 0.15       # how long a tapped key stays down. 0.07 s was missed by Burnout Paradise running
+                        # slowly with a logging proxy (2026-09-28): a game that reads keys once a frame
+                        # can miss a press shorter than one frame
 SRCCOPY = 0x00CC0020
 SW_RESTORE = 9
 ALT_SCAN = 0x38
@@ -112,6 +114,7 @@ def focus(hwnd):
     minimised, attach to the current foreground thread's input, and as a last resort tap Alt (which lifts the
     lock) before asking again."""
     if u.GetForegroundWindow() == hwnd:
+        u.SetActiveWindow(hwnd)   # some games only take keys when their window is also ACTIVE
         return True
     if u.IsIconic(hwnd):
         u.ShowWindow(hwnd, SW_RESTORE)

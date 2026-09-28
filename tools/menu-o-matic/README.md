@@ -34,6 +34,14 @@ The expensive part of automating a game is looking at it. Menu-o-matiC keeps the
 Regions are fractions of the window (`x,y,width,height`, each 0 to 1), so a route recorded in one window size
 replays in another.
 
+## Two settings that real games needed
+
+- **Keys are held for 0.15 s.** A game that reads the keyboard once per frame can miss a shorter press when it runs
+  slowly; Burnout Paradise did at 0.07 s.
+- **`"repress": N` on a wait step** presses the previous key again if the screen has not arrived after N seconds.
+  Some screens ignore a key while they are still fading in (Burnout's title screen does). Add it by editing the route
+  file: `{"wait": "save_notice", "repress": 4}`.
+
 ## Commands
 
 ```
@@ -71,6 +79,8 @@ Recorded routes belong with each game's control profile in `ai-game-control-prof
 `python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (23 checks,
 and a deliberately broken comparison makes it fail). Tried live on 2026-09-28 against Notepad: a recorded route
 replayed correctly, and a route that typed one letter too many stopped with "lost" at the right checkpoint.
+**First game, the same day: Burnout Paradise Remastered**, from a closed game to driving in the city in 150 seconds,
+seven checkpoints, no pictures looked at (`ai-game-control-profiles/routes/burnout-paradise-remastered/launch_to_city.json`).
 
 ## Credits
 
