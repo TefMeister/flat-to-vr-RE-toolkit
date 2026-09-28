@@ -19,7 +19,8 @@ KEY_HOLD_S = 0.15       # how long a tapped key stays down. 0.07 s was missed by
 SRCCOPY = 0x00CC0020
 SW_RESTORE = 9
 ALT_SCAN = 0x38
-INPUT_KEYBOARD = 1
+INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
+MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0002, 0x0004
 KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE = 0x0001, 0x0002, 0x0008
 
 # Scancodes. The second value marks EXTENDED keys; get it wrong and the key silently does nothing.
@@ -176,6 +177,31 @@ def _send(scan, extended, up):
     flags = KEYEVENTF_SCANCODE | (KEYEVENTF_EXTENDEDKEY if extended else 0) | (KEYEVENTF_KEYUP if up else 0)
     event = INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(0, scan, flags, 0, None)))
     u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+
+
+def is_open(hwnd):
+    """False once the window is gone: the game closed or crashed."""
+    return bool(u.IsWindow(hwnd)) and bool(u.IsWindowVisible(hwnd))
+
+
+def is_hung(hwnd):
+    """True while Windows considers the window 'Not Responding' (it has not handled messages for ~5 s)."""
+    return bool(u.IsHungAppWindow(hwnd))
+
+
+def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
+    """Left-click at a point given as fractions of the window's client area. Only when the window is in front."""
+    if not focus(hwnd):
+        raise NotInFront("the window is not in front; no click was sent")
+    width, height = client_size(hwnd)
+    pt = w.POINT(int(fx * width), int(fy * height))
+    u.ClientToScreen(hwnd, ctypes.byref(pt))
+    u.SetCursorPos(pt.x, pt.y)
+    time.sleep(0.05)
+    for flag in (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP):
+        event = INPUT(type=INPUT_MOUSE, u=_U(mi=MOUSEINPUT(0, 0, 0, flag, 0, None)))
+        u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+        time.sleep(hold_s)
 
 
 class NotInFront(RuntimeError):

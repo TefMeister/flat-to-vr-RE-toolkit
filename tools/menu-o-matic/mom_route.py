@@ -122,6 +122,34 @@ def changed_region(before, after, noise_before=None):
     return patches[0] if patches else None
 
 
+# ---- Is the picture moving at all? --------------------------------------------------
+STILL_DIFFERENCE = 1.5   # whole-window fingerprints closer than this count as "the same picture"
+
+
+class StillWatch:
+    """Tracks how long the whole picture has stayed exactly the same.
+
+    A loading screen with a spinner keeps changing; a frozen game does not. A static loading screen also does
+    not, which is why this only EXPLAINS a timeout and never cuts a wait short."""
+
+    def __init__(self):
+        self.sig, self.since = None, None
+
+    def update(self, image, now):
+        sig = signature(image)
+        if self.sig is None or distance(sig, self.sig) > STILL_DIFFERENCE:
+            self.sig, self.since = sig, now
+        return now - self.since
+
+
+def parse_point(text):
+    """'x,y' as fractions of the window, for a mouse click."""
+    parts = [float(v) for v in text.split(",")]
+    if len(parts) != 2 or any(v < 0 or v > 1 for v in parts):
+        raise ValueError("a point is two fractions x,y between 0 and 1, e.g. 0.5,0.62")
+    return parts
+
+
 # ---- Route files ---------------------------------------------------------------
 def new_route(game, window, name):
     return {"schema": SCHEMA, "game": game, "window": window, "route": name, "steps": [], "checkpoints": {}}

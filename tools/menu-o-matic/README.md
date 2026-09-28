@@ -34,6 +34,22 @@ The expensive part of automating a game is looking at it. Menu-o-matiC keeps the
 Regions are fractions of the window (`x,y,width,height`, each 0 to 1), so a route recorded in one window size
 replays in another.
 
+## When things go wrong
+
+A wait keeps trying for its whole time limit (90 s by default; `--timeout` for the whole run, or `"timeout"` on one
+step), so a loading screen that is slower than usual is fine. While it waits, it also checks on every look:
+
+| What happened | What the tool says | Exit code |
+| --- | --- | --- |
+| The screen never came, but the picture was still moving | `lost`: "a different screen than expected", plus a small patch and a half-size picture | 2 |
+| The whole picture did not change at all for 30 s or more | `lost`: "frozen: the whole picture has not changed for N s" | 2 |
+| The game window closed in the middle (a crash, or it quit) | `gone`, straight away, without waiting out the time limit | 3 |
+| The game never opened a window after launching (4 minutes by default) | `gone`: "it did not start, or it crashed while starting" | 3 |
+| Windows marked the game "Not Responding" for a whole minute | `not_responding` | 4 |
+
+A frozen picture never cuts a wait short, because some loading screens really are still pictures; it only explains
+the timeout. Tested on Notepad for all rows except "Not Responding", which needs a hung program to test.
+
 ## Two settings that real games needed
 
 - **Keys are held for 0.15 s.** A game that reads the keyboard once per frame can miss a shorter press when it runs
@@ -51,14 +67,15 @@ python menu_o_matic.py add   route.json --sleep 5
 python menu_o_matic.py look  "Burnout(TM)" full.png --scale 0.5
 python menu_o_matic.py look  "Burnout(TM)" crop.png --region 0.25,0.4,0.5,0.35
 python menu_o_matic.py press "Burnout(TM)" enter --route route.json --changed crop.png
+python menu_o_matic.py click "Burnout(TM)" 0.5,0.62 --route route.json
 python menu_o_matic.py mark  "Burnout(TM)" route.json main_menu --region 0.25,0.4,0.5,0.35 --note "..."
 python menu_o_matic.py check "Burnout(TM)" route.json main_menu
 python menu_o_matic.py run   route.json [--from N] [--timeout 90] [--lost-dir DIR]
 ```
 
 Every command prints one JSON line per event, so another program or an AI can read the result. `run` exits with
-**0** when the route is done, **2** when it got lost (the JSON names the checkpoint, the difference, and the two
-pictures it saved), and **1** for anything else.
+**0** when the route is done, **2** when it got lost, **3** when the game window closed or never opened, **4** when
+the game stopped responding, and **1** for anything else (see "When things go wrong").
 
 ## Safety
 
@@ -68,6 +85,17 @@ pictures it saved), and **1** for anything else.
 - **Nothing is deleted or changed in the game.** The tool only presses keys and reads the screen.
 - A checkpoint matches only when the patch is close on average **and** no single spot differs a lot, so one changed
   digit ("Col 2" against "Col 3") is enough to tell two screens apart.
+
+## Which inputs a route can hold
+
+Each step saves exactly the input that was used, so every menu gets its own button:
+
+- **Keys:** Enter, Space, Esc, Tab, Backspace, the arrows, Home/End/Page Up/Page Down, Shift/Ctrl/Alt, F1 to F12,
+  the numpad, letters and digits (`{"key": "space"}`).
+- **Mouse clicks** at a point given as fractions of the window, so they still land right in another window size
+  (`{"click": [0.5, 0.62]}`).
+- **Not yet:** holding a key, mouse movement without a click, and **game controllers**. A menu that only answers a
+  pad would need the toolkit's virtual pad (`virtual-pad.py`) joined in.
 
 ## Where routes live
 
