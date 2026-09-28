@@ -13,7 +13,8 @@ For any person or AI that can run a command and (only when needed) look at a pic
     add    FILE (--sleep S | --launch URL)                     add a plain step
     SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
     record <window> FILE [--frames DIR]                        the person plays; keys + timing recorded;
-                                                               numpad + marks a moment, numpad - stops
+                                                               numpad + = key needed here, numpad - = just
+                                                               wait here, numpad * = stop
     mark-image FILE N NAME --region x,y,w,h [--image PNG]      marker N (or any saved picture) -> checkpoint
     probe  <window> KEYS [--seconds S] [--region ..] [--watch-file LOG]   does this key reach the game?
     note   FILE "TEXT"                                         keep what the person said (controls, save slot)
@@ -153,8 +154,8 @@ def cmd_record(a):
     hwnd = need_window(a.window)
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
-    say(event="recording", keys="play normally", marker="numpad + = save this moment as a checkpoint to be",
-        stop="numpad - = stop", pictures=frames_dir)
+    say(event="recording", keys="play normally", key_screen="numpad + = a key is needed on this screen",
+        wait_screen="numpad - = this screen just needs waiting for", stop="numpad * = stop", pictures=frames_dir)
     events, frames = C.record(hwnd, frames_dir)
     steps = C.build_steps(events, frames)
     route["steps"].extend(steps)
@@ -176,6 +177,8 @@ def cmd_mark_image(a):
     img = Image.open(a.image or route["steps"][i]["todo"])
     route["checkpoints"][a.name] = {"region": region, "sig": R.signature(R.crop(img, region)), "tol": a.tol,
                                     "spot_tol": a.spot_tol, "note": a.note}
+    kind = route["steps"][i].get("kind", "key")
+    route["checkpoints"][a.name]["state"] = "menu" if kind == "key" else "loading"   # State-o-matiC can use it
     route["steps"][i] = {"wait": a.name}
     R.save(route, a.route)
     say(event="mark", checkpoint=a.name, from_marker=a.n)

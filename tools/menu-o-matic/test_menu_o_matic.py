@@ -104,11 +104,11 @@ except ValueError:
 # Recording: raw key events -> route steps
 import mom_record as C  # noqa: E402
 ev = [(0.5, "key", "w", True), (0.6, "key", "w", True), (2.0, "key", "d", True), (2.5, "key", "d", False),
-      (3.0, "marker", None, True), (3.4, "key", "enter", True), (3.5, "key", "enter", False)]
+      (3.0, "marker", "wait", True), (3.4, "key", "enter", True), (3.5, "key", "enter", False)]
 st = C.build_steps(ev, {0: "frames/00.png"})
 check("recording: auto-repeat downs are dropped", sum(1 for e in st[0]["play"] if e[1] == "w" and e[2] == 1) == 1)
 check("recording: a key still held at a marker is released there", st[0]["play"][-1] == [0.0, "w", 0])
-check("recording: the marker becomes a todo with its picture", st[1] == {"todo": "frames/00.png", "at": 3.0})
+check("recording: the marker becomes a todo with its picture and kind", st[1] == {"todo": "frames/00.png", "at": 3.0, "kind": "wait"})
 check("recording: the first key after a marker keeps its real delay", st[2]["play"][0] == [0.4, "enter", 1])
 check("recording: holds keep their length", st[0]["play"][2] == [0.5, "d", 0])
 

@@ -1,13 +1,16 @@
 """Menu-o-matiC / Move-o-matiC: record a person playing, so the machine can repeat it exactly.
 
 While recording, every key the person presses in the game window is noted with its exact timing (down and up,
-several keys at once, however long each is held). Numpad + drops a MARKER: the tool saves a picture of the
-window at that moment, to be turned into a checkpoint afterwards. Numpad - stops. The marker and stop keys are
-kept away from the game. Keys the tool itself sends are ignored, so a replay is never recorded by mistake.
+several keys at once, however long each is held). Two MARKER keys save a picture of the window at that moment, to
+be turned into a checkpoint afterwards, and say what kind of screen it is (Tefa's scheme, 2026-09-28):
+    numpad +   "a key is needed here"   (a menu, a prompt: the next key the person presses gets past it)
+    numpad -   "just wait here"         (a logo, a loading screen, a video: no key, it ends by itself)
+    numpad *   stop recording
+The three keys are kept away from the game. Keys the tool itself sends are ignored, so a replay is never recorded by mistake.
 
 The result goes into a route file as steps:
     {"play": [[0.0, "w", 1], [1.42, "w", 0], [0.10, "d", 1], ...]}   seconds since the previous event, key, 1 down / 0 up
-    {"todo": "frames/03.png", "at": 12.8}                             a marker waiting to become a checkpoint
+    {"todo": "frames/03.png", "at": 12.8, "kind": "key"|"wait"}       a marker waiting to become a checkpoint
 `mark-image` turns a todo into a real checkpoint (a region of that saved picture). Replays wait at checkpoints,
 so a slow loading screen never throws the timing off: the clock starts again after every checkpoint.
 Keyboard only for now; mouse movement is not recorded.
@@ -18,8 +21,10 @@ import os
 import time
 
 # ---- Settings ----------------------------------------------------------------
-MARKER_VK = 0x6B   # numpad +  (VK_ADD)
-STOP_VK = 0x6D     # numpad -  (VK_SUBTRACT)
+KEY_MARK_VK = 0x6B   # numpad +  (VK_ADD)       "a key is needed here"
+WAIT_MARK_VK = 0x6D  # numpad -  (VK_SUBTRACT)  "just wait here"
+STOP_VK = 0x6A       # numpad *  (VK_MULTIPLY)
+MARK_KIND = {KEY_MARK_VK: "key", WAIT_MARK_VK: "wait"}
 WH_KEYBOARD_LL = 13
 WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x0100, 0x0101, 0x0104, 0x0105
 WM_QUIT, WM_APP = 0x0012, 0x8000
@@ -36,7 +41,7 @@ class KBDLLHOOKSTRUCT(ctypes.Structure):
 def build_steps(events, frames):
     """Turn raw events into route steps. Pure logic, tested without a keyboard.
 
-    events: list of (seconds, "key"|"marker", name, down) in time order.
+    events: list of (seconds, "key"|"marker", name, down) in time order; for a marker, name is its kind.
     frames: {marker index: picture path}.
     Keys still held at a marker are released there in the recording, so every chunk starts with nothing held."""
     steps, chunk, last_t, held, marker_no = [], [], None, set(), 0
@@ -53,7 +58,7 @@ def build_steps(events, frames):
             held.clear()
             if chunk:
                 steps.append({"play": chunk})
-            steps.append({"todo": frames.get(marker_no, ""), "at": round(t, 2)})
+            steps.append({"todo": frames.get(marker_no, ""), "at": round(t, 2), "kind": name or "key"})
             # the next key keeps its real delay AFTER the marker: how long the person waited once the
             # screen was there (a replay starts that clock when the checkpoint matches)
             chunk, last_t, marker_no = [], t, marker_no + 1
@@ -65,7 +70,7 @@ def build_steps(events, frames):
 
 
 def record(hwnd, frames_dir):
-    """Record until numpad - is pressed. Returns (events, frames)."""
+    """Record until numpad * is pressed. Returns (events, frames)."""
     import mom_window as W
     user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
     names = {v: k for k, v in W.KEYS.items()}            # (scan, extended) -> key name
@@ -88,9 +93,9 @@ def record(hwnd, frames_dir):
         if code == 0:
             k = ctypes.cast(lparam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
             down = wparam in (WM_KEYDOWN, WM_SYSKEYDOWN)
-            if k.vkCode in (MARKER_VK, STOP_VK):
-                if down and k.vkCode == MARKER_VK:
-                    pending_markers.append(time.time() - start)
+            if k.vkCode in (KEY_MARK_VK, WAIT_MARK_VK, STOP_VK):
+                if down and k.vkCode in MARK_KIND:
+                    pending_markers.append((time.time() - start, MARK_KIND[k.vkCode]))
                     user32.PostThreadMessageW(thread, WM_APP, 0, 0)
                 elif down:
                     user32.PostThreadMessageW(thread, WM_QUIT, 0, 0)
@@ -110,13 +115,13 @@ def record(hwnd, frames_dir):
     try:
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             while pending_markers:                         # pictures are taken here, outside the hook
-                t = pending_markers.pop(0)
+                t, kind = pending_markers.pop(0)
                 n = len(frames)
                 path = os.path.join(frames_dir, f"{n:02d}.png")
                 W.capture(hwnd).save(path)
                 frames[n] = path
-                events.append((t, "marker", None, True))
-                print(f'{{"event": "marker", "n": {n}, "at": {t:.2f}, "picture": "{path}"}}', flush=True)
+                events.append((t, "marker", kind, True))
+                print(f'{{"event": "marker", "n": {n}, "kind": "{kind}", "at": {t:.2f}, "picture": "{path}"}}', flush=True)
     finally:
         user32.UnhookWindowsHookEx(hook)
     events.sort(key=lambda e: e[0])
