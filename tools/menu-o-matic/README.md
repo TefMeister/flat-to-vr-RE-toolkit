@@ -1,9 +1,40 @@
-# Menu-o-matiC
+# Menu-o-matiC and Move-o-matiC
 
-**Gets a game from launch to gameplay by itself (and back out), by replaying recorded menu routes.**
+**Get a game from launch to gameplay by itself, and move the character or car along a recorded route, by
+replaying what a person did once.** `menu_o_matic.py` is the menus; `move_o_matic.py` adds held keys and camera
+turns. Both use the same route files and replay engine.
 Built for flat-to-VR modding sessions, where the same menus get walked dozens of times a day. Works for any
 person or AI that can run a command; a model is only needed when something unexpected is on screen.
 Windows only. Needs Python 3 and Pillow (`pip install pillow`).
+
+## Setting a game up (once, with the person who plays it)
+
+Automation only works when the basics come from someone who knows the game. Guessing costs whole sessions: on
+the day this was written, a car was tapped forward for half an hour when it needed the throttle HELD, and a
+tool waited for an intro video while "Press Any Button" was already on screen. So each game starts with a short
+setup, done together:
+
+1. **A save past the tutorials** that always loads in the same spot. The person plays to it and says which
+   slot it is (`note route.json "..."` keeps it in the route).
+2. **The menus.** For each screen, the person says which button gets past it. Simplest: they play through the
+   menus once while `record` runs (below) and tap **numpad +** on every screen that must be waited for.
+3. **The controls.** The person names the minimum buttons to move and look, and how they behave ("hold W about a
+   second before the car moves"). Keep it with `note`.
+4. **The input check.** Before recording anything, `probe <window> w --seconds 1.5 --region x,y,w,h` holds each
+   control and says whether the pointed-at spot changed (brake lights, a speedometer, the character) and, with
+   `--watch-file`, whether a mod's log wrote anything. If a key reaches the game but the screen looks the same,
+   that is known at once instead of being mistaken for a slow load.
+5. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
+   press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
+   guessed. They tap **numpad +** wherever the replay should check it arrived (a screen, a landmark, a map
+   label), preferably standing still, and **numpad −** to stop. Numpad + and − never reach the game. Then
+   `mark-image route.json N name --region x,y,w,h` turns marker N's saved picture into a checkpoint; the picture
+   stays on the PC.
+
+After that, `run` repeats it as often as needed with no pictures, waiting at each checkpoint so a slow load never
+throws the timing off. If a replay drifts, it stops with "lost"; load the save again (its own short route) rather
+than restarting the game. The recorder ignores keys that programs send, so a replay is never recorded by mistake.
+Keyboard only for now: mouse movement is not recorded yet.
 
 ## How it works
 
@@ -104,7 +135,10 @@ Recorded routes belong with each game's control profile in `ai-game-control-prof
 
 ## Tests
 
-`python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (23 checks,
+The recorder was tried on Notepad the same day: recorded typing (a held key, a tap, a marker) replayed from a
+closed Notepad with the same result, and its marker became a working checkpoint.
+
+`python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (33 checks,
 and a deliberately broken comparison makes it fail). Tried live on 2026-09-28 against Notepad: a recorded route
 replayed correctly, and a route that typed one letter too many stopped with "lost" at the right checkpoint.
 **First game, the same day: Burnout Paradise Remastered**, from a closed game to driving in the city in 150 seconds,
