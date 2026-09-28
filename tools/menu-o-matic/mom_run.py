@@ -44,9 +44,11 @@ def lost(route, index, step, hwnd, lost_dir, distance, reason):
     patch = os.path.join(lost_dir, "lost-patch.png")
     img.resize((img.width // 2, img.height // 2)).save(full)
     R.crop(img, route["checkpoints"][step["wait"]]["region"]).save(patch)
+    import state_o_matic                           # what does the game seem to be doing instead?
+    guess, why, _ = state_o_matic.observe(hwnd, 1.5)
     say(event="lost", route=route["route"], step=index, checkpoint=step["wait"], reason=reason,
         distance=round(distance, 2), note=route["checkpoints"][step["wait"]].get("note", ""),
-        full=full, patch=patch)
+        state_guess=guess, state_why=why, full=full, patch=patch)
     sys.exit(EXIT_LOST)
 
 

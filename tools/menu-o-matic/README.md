@@ -1,4 +1,4 @@
-# Menu-o-matiC and Move-o-matiC
+# Menu-o-matiC, Move-o-matiC and State-o-matiC
 
 **Get a game from launch to gameplay by itself, and move the character or car along a recorded route, by
 replaying what a person did once.** `menu_o_matic.py` is the menus; `move_o_matic.py` adds held keys and camera
@@ -35,6 +35,27 @@ After that, `run` repeats it as often as needed with no pictures, waiting at eac
 throws the timing off. If a replay drifts, it stops with "lost"; load the save again (its own short route) rather
 than restarting the game. The recorder ignores keys that programs send, so a replay is never recorded by mistake.
 Keyboard only for now: mouse movement is not recorded yet.
+
+## State-o-matiC: what is the game doing right now?
+
+`state_o_matic.py watch <window> [--poke KEY] [--states FILE]` looks for two seconds and says **menu or loading
+screen, loading, cutscene, gameplay, moving,** or **still**, with the reason. No game announces its state, so it
+combines signs that work from outside almost any game, judged on this PC with no model involved:
+
+| Sign | Means |
+| --- | --- |
+| black bars at the top and bottom | a cutscene |
+| most of the picture changing | gameplay or a cutscene |
+| only one small patch changing | a loading icon or a menu highlight |
+| the game reading its disk hard | loading |
+| `--poke KEY`: the picture answers a key | gameplay (even when nothing else moves) |
+| a screen taught during setup (`teach`) | that screen, for certain |
+
+**Teach the screens that fool it.** Menus with a moving 3D scene behind them look like gameplay, and a parked car
+looks like a menu. During setup, show it those screens: `teach <window> states.json main_menu --region x,y,w,h`.
+Menu-o-matiC and Move-o-matiC add its verdict when a route gets lost, so the report says "loading" or "cutscene"
+rather than only "wrong screen". First live run: Burnout Paradise, 2026-09-28 (loading screens and the idle
+cinematic camera were read correctly; the car screens and the parked view needed teaching).
 
 ## How it works
 
@@ -138,7 +159,7 @@ Recorded routes belong with each game's control profile in `ai-game-control-prof
 The recorder was tried on Notepad the same day: recorded typing (a held key, a tap, a marker) replayed from a
 closed Notepad with the same result, and its marker became a working checkpoint.
 
-`python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (33 checks,
+`python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (47 checks,
 and a deliberately broken comparison makes it fail). Tried live on 2026-09-28 against Notepad: a recorded route
 replayed correctly, and a route that typed one letter too many stopped with "lost" at the right checkpoint.
 **First game, the same day: Burnout Paradise Remastered**, from a closed game to driving in the city in 150 seconds,
