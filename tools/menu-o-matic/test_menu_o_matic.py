@@ -112,6 +112,52 @@ check("recording: the marker becomes a todo with its picture", st[1] == {"todo":
 check("recording: the first key after a marker keeps its real delay", st[2]["play"][0] == [0.4, "enter", 1])
 check("recording: holds keep their length", st[0]["play"][2] == [0.5, "d", 0])
 
+# State-o-matiC: the judge
+import random  # noqa: E402
+import mom_state as S  # noqa: E402
+
+
+def scene(seed, bars=False, spinner_at=None):
+    rnd = random.Random(seed)
+    img = Image.new("RGB", (640, 360), (90, 110, 130))
+    d = ImageDraw.Draw(img)
+    for _ in range(60):
+        x, y = rnd.randrange(640), rnd.randrange(360)
+        d.rectangle([x, y, x + 40, y + 30], fill=(rnd.randrange(256), rnd.randrange(256), rnd.randrange(256)))
+    if bars:
+        d.rectangle([0, 0, 640, 45], fill=(0, 0, 0))
+        d.rectangle([0, 315, 640, 360], fill=(0, 0, 0))
+    return img
+
+
+def still_with_spinner(k):
+    img = Image.new("RGB", (640, 360), (20, 20, 25))
+    ImageDraw.Draw(img).text((250, 150), "LOADING", fill=(200, 200, 200))
+    ImageDraw.Draw(img).rectangle([560 + (k % 4) * 8, 300, 568 + (k % 4) * 8, 308], fill=(255, 255, 255))
+    return img
+
+
+check("letterbox: bars are seen", S.letterbox(scene(1, bars=True)))
+check("letterbox: an ordinary picture has none", not S.letterbox(scene(1)))
+busy = [scene(k) for k in range(5)]
+avg, ever = S.motion(busy)
+check("motion: a busy scene moves a lot", avg >= S.MOVING_SHARE)
+spin = [still_with_spinner(k) for k in range(5)]
+avg_s, ever_s = S.motion(spin)
+check("motion: a spinner moves only a small patch", 0 < avg_s and ever_s <= S.SPINNER_MAX_SHARE)
+check("motion: a still picture does not move", S.motion([menu(0), menu(0), menu(0)])[0] == 0)
+base = {"letterbox": False, "motion": avg, "motion_anywhere": ever}
+check("judge: taught screens win", S.judge(dict(base, taught="main_menu"))[0] == "main_menu")
+check("judge: bars mean cutscene", S.judge(dict(base, letterbox=True, motion=0.3))[0] == "cutscene")
+check("judge: moving and answering a key = gameplay", S.judge(dict(base, poke_answer=0.2))[0] == "gameplay")
+check("judge: moving but not answering = cutscene", S.judge(dict(base, poke_answer=0.0))[0] == "cutscene")
+check("judge: moving, no poke = 'moving'", S.judge(base)[0] == "moving")
+spin_signs = {"letterbox": False, "motion": avg_s, "motion_anywhere": ever_s}
+check("judge: spinner alone = menu or loading screen", S.judge(spin_signs)[0] == "menu or loading screen")
+check("judge: spinner + disk reads = loading", S.judge(dict(spin_signs, disk_mb_s=50))[0] == "loading")
+check("judge: a still picture that answers a key = gameplay", S.judge({"letterbox": False, "motion": 0.0, "motion_anywhere": 0.0, "poke_answer": 0.2})[0] == "gameplay")
+check("judge: nothing moves = still", S.judge({"letterbox": False, "motion": 0.0, "motion_anywhere": 0.0})[0] == "still")
+
 # Route files
 with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, "routes", "test.json")

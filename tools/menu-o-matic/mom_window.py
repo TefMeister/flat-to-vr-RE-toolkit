@@ -237,6 +237,30 @@ def turn(hwnd, dx, dy):
         time.sleep(TURN_STEP_S)
 
 
+class IO_COUNTERS(ctypes.Structure):
+    _fields_ = [(n, ctypes.c_ulonglong) for n in ("ReadOperationCount", "WriteOperationCount",
+                                                  "OtherOperationCount", "ReadTransferCount",
+                                                  "WriteTransferCount", "OtherTransferCount")]
+
+
+def bytes_read(hwnd):
+    """Total bytes the window's process has read so far (disk and other I/O), or None if Windows won't say.
+    Two readings a few seconds apart give a read rate; loading screens read hard."""
+    kernel32 = ctypes.windll.kernel32
+    pid = w.DWORD()
+    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    kernel32.OpenProcess.restype = w.HANDLE
+    handle = kernel32.OpenProcess(0x1000, False, pid.value)   # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        counters = IO_COUNTERS()
+        ok = kernel32.GetProcessIoCounters(handle, ctypes.byref(counters))
+        return counters.ReadTransferCount if ok else None
+    finally:
+        kernel32.CloseHandle(handle)
+
+
 class NotInFront(RuntimeError):
     """The target window could not be brought to the front, so no key was sent."""
 
