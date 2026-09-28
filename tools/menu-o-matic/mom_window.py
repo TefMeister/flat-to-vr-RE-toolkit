@@ -20,7 +20,9 @@ SRCCOPY = 0x00CC0020
 SW_RESTORE = 9
 ALT_SCAN = 0x38
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
-MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0002, 0x0004
+MOUSEEVENTF_MOVE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0001, 0x0002, 0x0004
+TURN_STEP_COUNTS = 10   # a camera turn is sent as moves of at most this many counts...
+TURN_STEP_S = 0.012     # ...this far apart, so the game sees a smooth turn
 KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE = 0x0001, 0x0002, 0x0008
 
 # Scancodes. The second value marks EXTENDED keys; get it wrong and the key silently does nothing.
@@ -202,6 +204,37 @@ def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
         event = INPUT(type=INPUT_MOUSE, u=_U(mi=MOUSEINPUT(0, 0, 0, flag, 0, None)))
         u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
         time.sleep(hold_s)
+
+
+def hold(names, seconds, hwnd):
+    """Hold several keys down together for `seconds` (walk forward, drive and steer), then let go of all of
+    them. Keys are released even if something goes wrong, so a key is never left stuck down."""
+    codes = [KEYS[n.lower()] for n in names]
+    if not focus(hwnd):
+        raise NotInFront("the window is not in front; no key was held")
+    try:
+        for scan, extended in codes:
+            _send(scan, extended, False)
+            time.sleep(0.02)
+        time.sleep(seconds)
+    finally:
+        for scan, extended in reversed(codes):
+            _send(scan, extended, True)
+
+
+def turn(hwnd, dx, dy):
+    """Move the mouse by (dx, dy) counts, spread over small steps so the game sees a smooth turn rather than
+    one jump. How far a count turns the camera depends on the game and its sensitivity setting."""
+    if not focus(hwnd):
+        raise NotInFront("the window is not in front; the mouse was not moved")
+    steps = max(1, int(max(abs(dx), abs(dy)) / TURN_STEP_COUNTS))
+    done_x = done_y = 0
+    for k in range(1, steps + 1):
+        tx, ty = round(dx * k / steps), round(dy * k / steps)
+        event = INPUT(type=INPUT_MOUSE, u=_U(mi=MOUSEINPUT(tx - done_x, ty - done_y, 0, MOUSEEVENTF_MOVE, 0, None)))
+        u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+        done_x, done_y = tx, ty
+        time.sleep(TURN_STEP_S)
 
 
 class NotInFront(RuntimeError):

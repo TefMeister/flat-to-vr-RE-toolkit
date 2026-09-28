@@ -11,8 +11,14 @@ For any person or AI that can run a command and (only when needed) look at a pic
     check  <window> FILE NAME                                  does the screen match that checkpoint now?
     new    FILE --game G --window W --route R                  start an empty route file
     add    FILE (--sleep S | --launch URL)                     add a plain step
-    run    FILE [--from N] [--lost-dir DIR] [--timeout S]      replay a route; stops at the first
-                                                               checkpoint that does not match
+    SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
+    record <window> FILE [--frames DIR]                        the person plays; keys + timing recorded;
+                                                               numpad + marks a moment, numpad - stops
+    mark-image FILE N NAME --region x,y,w,h [--image PNG]      marker N (or any saved picture) -> checkpoint
+    probe  <window> KEYS [--seconds S] [--region ..] [--watch-file LOG]   does this key reach the game?
+    note   FILE "TEXT"                                         keep what the person said (controls, save slot)
+    run    FILE [FILE ..] [--from N] [--lost-dir DIR] [--timeout S]  replay one or more routes in a row;
+                                                               stops at the first checkpoint that does not match
 
 Regions are fractions of the window (x,y,width,height), so a route recorded in one window size replays in
 another. Exit codes: 0 done; 2 lost (the checkpoint never matched: the JSON says whether the picture was
@@ -28,29 +34,16 @@ HOW TO SPEND LITTLE (the point of the tool; see README.md):
   4. `mark` each screen as you reach it. Next time, `run` replays everything with no pictures at all.
 """
 import argparse
-import json
 import os
-import subprocess
 import sys
 import time
 
 import mom_route as R
+from mom_run import DEFAULT_WAIT_TIMEOUT_S, cmd_run, say
 
 # ---- Settings ----------------------------------------------------------------
-POLL_S = 0.5                 # how often `run` re-checks a checkpoint
-DEFAULT_WAIT_TIMEOUT_S = 90  # loading screens can be long
 KEY_SETTLE_S = 0.8           # after a key, before a "what changed" capture
 NOISE_GAP_S = 0.8            # between the two no-key captures that find self-moving parts
-WINDOW_TIMEOUT_S = 240       # after a launch step
-LAUNCH_SETTLE_S = 2.0        # after the window appears, before the first key
-HUNG_GIVE_UP_S = 60          # 'Not Responding' this long in a row = give up (games do hang briefly while loading)
-FROZEN_S = 30                # a timeout with the picture unchanged this long is reported as "frozen"
-EXIT_LOST, EXIT_GONE, EXIT_HUNG = 2, 3, 4
-
-
-def say(**fields):
-    """One JSON line per event, so another program (or an AI) can read the result reliably."""
-    print(json.dumps(fields, ensure_ascii=False), flush=True)
 
 
 def need_window(title):
@@ -127,7 +120,7 @@ def cmd_mark(a):
     if a.name in route["checkpoints"]:
         say(event="error", error=f"checkpoint {a.name!r} already exists in {a.route}")
         sys.exit(1)
-    R.add_checkpoint(route, a.name, region, R.signature(R.crop(img, region)), a.note, a.tol)
+    R.add_checkpoint(route, a.name, region, R.signature(R.crop(img, region)), a.note, a.tol, a.spot_tol)
     R.save(route, a.route)
     say(event="mark", checkpoint=a.name, region=a.region)
 
@@ -154,110 +147,71 @@ def cmd_add(a):
     say(event="add", step=route["steps"][-1])
 
 
-def lost(route, index, step, hwnd, lost_dir, distance, reason):
-    """Save what the screen showed (a full half-size picture and the checkpoint patch) and report."""
-    import mom_window as W
-    os.makedirs(lost_dir, exist_ok=True)
-    img = W.capture(hwnd)
-    full = os.path.join(lost_dir, "lost-full.png")
-    patch = os.path.join(lost_dir, "lost-patch.png")
-    img.resize((img.width // 2, img.height // 2)).save(full)
-    R.crop(img, route["checkpoints"][step["wait"]]["region"]).save(patch)
-    say(event="lost", step=index, checkpoint=step["wait"], reason=reason, distance=round(distance, 2),
-        note=route["checkpoints"][step["wait"]].get("note", ""), full=full, patch=patch)
-    sys.exit(EXIT_LOST)
-
-
-def gone(index, what):
-    """The game's window is gone (closed or crashed), or never came."""
-    say(event="gone", step=index, reason=what)
-    sys.exit(EXIT_GONE)
-
-
-def wait_for(route, i, step, hwnd, a):
-    """Poll one checkpoint. Keeps trying until it matches or the step's time runs out, and on every poll checks
-    that the game is still there and still answering. Returns the last distance."""
-    import mom_window as W
-    now = time.time()
-    end = now + (step.get("timeout") or a.timeout)
-    repress = step.get("repress")
-    last_key = next((s["key"] for s in reversed(route["steps"][:i]) if "key" in s), None)
-    next_press = now + repress if repress and last_key else None
-    still, hung_since, d, unchanged = R.StillWatch(), None, 255.0, 0.0
-    while time.time() < end:
-        if not W.is_open(hwnd):
-            gone(i, f"the game window closed while waiting for '{step['wait']}' (crashed or quit)")
-        if W.is_hung(hwnd):
-            hung_since = hung_since or time.time()
-            if time.time() - hung_since >= HUNG_GIVE_UP_S:
-                say(event="not_responding", step=i, seconds=int(time.time() - hung_since),
-                    reason="Windows reports the game as Not Responding")
-                sys.exit(EXIT_HUNG)
-            time.sleep(POLL_S)
-            continue
-        hung_since = None
-        try:
-            img = W.capture(hwnd)
-        except W.NotInFront:
-            if not W.is_open(hwnd):
-                gone(i, "the game window closed")
-            raise
-        d, ok = R.matches(route, step["wait"], img)
-        if ok:
-            return d
-        unchanged = still.update(img, time.time())
-        if next_press and time.time() >= next_press:
-            W.tap(last_key, hwnd)
-            say(event="repress", step=i, key=last_key)
-            next_press = time.time() + repress
-        time.sleep(POLL_S)
-    if unchanged >= FROZEN_S:
-        reason = f"frozen: the whole picture has not changed for {int(unchanged)} s"
-    else:
-        reason = "a different screen than expected (the picture is still moving)"
-    lost(route, i, step, hwnd, a.lost_dir, d, reason)
-
-
-def cmd_run(a):
-    import mom_window as W
+def cmd_record(a):
+    """Setup mode: the person plays; every key and its timing is recorded, numpad + marks a moment."""
+    import mom_record as C
+    hwnd = need_window(a.window)
     route = R.load(a.route)
-    hwnd = W.find_window(route["window"])
-    for i, step in enumerate(route["steps"]):
-        if i < a.start:
-            continue
-        if "launch" in step:
-            if hwnd:
-                say(event="skip", step=i, why="window already open")
-                continue
-            os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
-            hwnd = W.wait_window(route["window"], step.get("timeout") or WINDOW_TIMEOUT_S)
-            if not hwnd:
-                gone(i, f"no game window within {step.get('timeout') or WINDOW_TIMEOUT_S} s: it did not start, "
-                        "or it crashed while starting")
-            time.sleep(LAUNCH_SETTLE_S)
-            say(event="launched", step=i)
-        elif "sleep" in step:
-            time.sleep(step["sleep"])
-        elif "key" in step or "click" in step:
-            if not hwnd:
-                hwnd = W.wait_window(route["window"], WINDOW_TIMEOUT_S)
-            if not hwnd or not W.is_open(hwnd):
-                gone(i, "the game window is not there")
-            if "key" in step:
-                W.tap(step["key"], hwnd)
-                say(event="key", step=i, key=step["key"])
-            else:
-                W.click(hwnd, *step["click"])
-                say(event="click", step=i, at=step["click"])
-        elif "wait" in step:
-            d = wait_for(route, i, step, hwnd, a)
-            say(event="reached", step=i, checkpoint=step["wait"], distance=round(d, 2))
-    say(event="done", route=route["route"])
+    frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
+    say(event="recording", keys="play normally", marker="numpad + = save this moment as a checkpoint to be",
+        stop="numpad - = stop", pictures=frames_dir)
+    events, frames = C.record(hwnd, frames_dir)
+    steps = C.build_steps(events, frames)
+    route["steps"].extend(steps)
+    R.save(route, a.route)
+    say(event="recorded", steps=len(steps), key_events=sum(len(s.get("play", [])) for s in steps),
+        markers=len(frames), note="pictures stay on this PC; never commit them")
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    sub = p.add_subparsers(dest="cmd", required=True)
+def cmd_mark_image(a):
+    """Turn marker N (a saved picture) into a checkpoint: a region of that picture."""
+    from PIL import Image
+    route = R.load(a.route)
+    todos = [i for i, s in enumerate(route["steps"]) if "todo" in s]
+    if a.n >= len(todos):
+        say(event="error", error=f"there are only {len(todos)} unfinished markers")
+        sys.exit(1)
+    i = todos[a.n]
+    region = R.parse_region(a.region)
+    img = Image.open(a.image or route["steps"][i]["todo"])
+    route["checkpoints"][a.name] = {"region": region, "sig": R.signature(R.crop(img, region)), "tol": a.tol,
+                                    "spot_tol": a.spot_tol, "note": a.note}
+    route["steps"][i] = {"wait": a.name}
+    R.save(route, a.route)
+    say(event="mark", checkpoint=a.name, from_marker=a.n)
+
+
+def cmd_probe(a):
+    """Does this key reach the game? Holds it and reports what changed in a region, and in a log file."""
+    import mom_window as W
+    hwnd = need_window(a.window)
+    region = R.parse_region(a.region) if a.region else [0.0, 0.0, 1.0, 1.0]
+    size = os.path.getsize(a.watch_file) if a.watch_file and os.path.exists(a.watch_file) else None
+    before = R.crop(W.capture(hwnd), region)
+    W.hold([k.strip() for k in a.keys.split(",")], a.seconds, hwnd)
+    after = R.crop(W.capture(hwnd), region)
+    d = R.distance(R.signature(before), R.signature(after))
+    result = dict(event="probe", keys=a.keys, region_changed=d > R.STILL_DIFFERENCE, difference=round(d, 2))
+    if size is not None:
+        with open(a.watch_file, "rb") as f:
+            f.seek(size)
+            new = f.read().decode("utf-8", "replace").splitlines()
+        result.update(new_log_lines=len(new), last_log_lines=new[-3:])
+    if a.out:
+        after.save(a.out)
+        result.update(picture=a.out)
+    say(**result)
+
+
+def cmd_note(a):
+    route = R.load(a.route)
+    route.setdefault("setup_notes", []).append(a.text)
+    R.save(route, a.route)
+    say(event="note", notes=len(route["setup_notes"]))
+
+
+def register_common(sub):
+    """The commands both Menu-o-matiC and Move-o-matiC have."""
     s = sub.add_parser("look"); s.add_argument("window"); s.add_argument("out")
     s.add_argument("--region"); s.add_argument("--scale", type=float, default=1.0); s.set_defaults(f=cmd_look)
     s = sub.add_parser("press"); s.add_argument("window"); s.add_argument("key")
@@ -266,7 +220,8 @@ def main():
     s.add_argument("--route"); s.set_defaults(f=cmd_click)
     s = sub.add_parser("mark"); s.add_argument("window"); s.add_argument("route"); s.add_argument("name")
     s.add_argument("--region", required=True); s.add_argument("--note", default="")
-    s.add_argument("--tol", type=float, default=R.DEFAULT_TOLERANCE); s.set_defaults(f=cmd_mark)
+    s.add_argument("--tol", type=float, default=R.DEFAULT_TOLERANCE)
+    s.add_argument("--spot-tol", type=float, default=R.DEFAULT_SPOT_TOLERANCE); s.set_defaults(f=cmd_mark)
     s = sub.add_parser("check"); s.add_argument("window"); s.add_argument("route"); s.add_argument("name")
     s.set_defaults(f=cmd_check)
     s = sub.add_parser("new"); s.add_argument("route"); s.add_argument("--game", required=True)
@@ -274,9 +229,28 @@ def main():
     s.set_defaults(f=cmd_new)
     s = sub.add_parser("add"); s.add_argument("route"); g = s.add_mutually_exclusive_group(required=True)
     g.add_argument("--sleep", type=float); g.add_argument("--launch"); s.set_defaults(f=cmd_add)
-    s = sub.add_parser("run"); s.add_argument("route"); s.add_argument("--from", dest="start", type=int, default=0)
+    s = sub.add_parser("record"); s.add_argument("window"); s.add_argument("route"); s.add_argument("--frames")
+    s.set_defaults(f=cmd_record)
+    s = sub.add_parser("mark-image"); s.add_argument("route"); s.add_argument("n", type=int); s.add_argument("name")
+    s.add_argument("--region", required=True); s.add_argument("--image"); s.add_argument("--note", default="")
+    s.add_argument("--tol", type=float, default=R.DEFAULT_TOLERANCE)
+    s.add_argument("--spot-tol", type=float, default=R.DEFAULT_SPOT_TOLERANCE); s.set_defaults(f=cmd_mark_image)
+    s = sub.add_parser("probe"); s.add_argument("window"); s.add_argument("keys")
+    s.add_argument("--seconds", type=float, default=1.0); s.add_argument("--region"); s.add_argument("--watch-file")
+    s.add_argument("--out"); s.set_defaults(f=cmd_probe)
+    s = sub.add_parser("note"); s.add_argument("route"); s.add_argument("text"); s.set_defaults(f=cmd_note)
+    s = sub.add_parser("run"); s.add_argument("routes", nargs="+")
+    s.add_argument("--from", dest="start", type=int, default=0)
     s.add_argument("--lost-dir", default="menu-o-matic-lost")
     s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S); s.set_defaults(f=cmd_run)
+
+
+def main(doc=__doc__, extra=None):
+    p = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+    register_common(sub)
+    if extra:
+        extra(sub)
     a = p.parse_args()
     import mom_window as W
     try:
