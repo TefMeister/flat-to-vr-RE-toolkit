@@ -85,5 +85,5 @@ seven checkpoints, no pictures looked at (`ai-game-control-profiles/routes/burno
 ## Credits
 
 The window capture and scancode key presses come from this toolkit's `game-harness.py`. Part of the Lanes plugin as
-the `/lanes:menu` command. The idea, the name and the "look big once, then only small patches" approach are
-Tefa's.
+the `/lanes:menu` command. The idea, the name and the "look big once, then only small patches" approach came from
+the person this toolkit is built with.
