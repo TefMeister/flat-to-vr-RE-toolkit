@@ -157,8 +157,8 @@ Recorded routes belong with each game's control profile in `ai-game-control-prof
 
 ## Tests
 
-**First game set up together: Burnout Paradise, 2026-09-28.** Tefa played from launch to driving in the city once
-while it recorded; the recording showed what guessing had missed ("Press Any Button" appears a moment after the
+**First game set up together: Burnout Paradise, 2026-09-28.** The player played from launch to driving in the city
+once while it recorded; the recording showed what guessing had missed ("Press Any Button" appears a moment after the
 title, and Enter before it is ignored). The route then replayed from a closed game twice in a row, 118 s and 161 s,
 every checkpoint matched, no key pressed twice.
 

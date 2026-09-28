@@ -2,7 +2,7 @@
 
 While recording, every key the person presses in the game window is noted with its exact timing (down and up,
 several keys at once, however long each is held). Two MARKER keys save a picture of the window at that moment, to
-be turned into a checkpoint afterwards, and say what kind of screen it is (Tefa's scheme, 2026-09-28):
+be turned into a checkpoint afterwards, and say what kind of screen it is (the player's own scheme, 2026-09-28):
     numpad +   "a key is needed here"   (a menu, a prompt: the next key the person presses gets past it)
     numpad -   "just wait here"         (a logo, a loading screen, a video: no key, it ends by itself)
     numpad *   stop recording
