@@ -100,7 +100,15 @@ def find_window(title_part):
         return True
 
     u.EnumWindows(cb, 0)
-    return found[0] if found else None
+    if not found:
+        return None
+    # the LARGEST match: games often show a tiny start-up window with the same title first (Enslaved's is
+    # 160x28), and a recorder or replay attached to it sees nothing (2026-09-29)
+    def area(h):
+        r = w.RECT()
+        u.GetWindowRect(h, ctypes.byref(r))
+        return (r.right - r.left) * (r.bottom - r.top)
+    return max(found, key=area)
 
 
 def wait_window(title_part, timeout_s):
