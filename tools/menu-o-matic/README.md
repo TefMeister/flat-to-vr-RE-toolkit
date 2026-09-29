@@ -181,6 +181,7 @@ closed Notepad with the same result, and its marker became a working checkpoint.
 `python test_menu_o_matic.py` checks the route logic with drawn test pictures, no window or game needed (47 checks,
 and a deliberately broken comparison makes it fail). Tried live on 2026-09-28 against Notepad: a recorded route
 replayed correctly, and a route that typed one letter too many stopped with "lost" at the right checkpoint.
+**Second game, 2026-09-29: Alice: Madness Returns**, recorded with the player in one go (11 marks, 5 kept as checkpoints; the moving logos are simply waited out), then replayed from a closed game twice: 50 s each, every checkpoint matched. It showed that a game can open its window empty for a moment; a wait now keeps waiting through that instead of stopping.
 **First game, the same day: Burnout Paradise Remastered**, from a closed game to driving in the city in 150 seconds,
 seven checkpoints, no pictures looked at (`ai-game-control-profiles/routes/burnout-paradise-remastered/launch_to_city.json`).
 
