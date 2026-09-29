@@ -21,7 +21,9 @@ setup, done together:
    slot it is (`note route.json "..."` keeps it in the route).
 2. **The menus: three goals per game** (the player's scheme, 2026-09-29): **launch → gameplay**, **launch → key
    bindings** (pictured, read once, stored as `controls`), and **gameplay → desktop**. Each is recorded on its own,
-   the quickest way through, with the three recorder keys below.
+   the quickest way through, with the three recorder keys below, **in this order**: goal 1, then quit; goal 2,
+   then quit; then get into gameplay (goal 1 replays it), press Home, and work back out to the desktop for goal 3.
+   Each goal is replayed once before the next is recorded.
 3. **The controls.** The person names the minimum buttons to move and look, and how they behave ("hold W about a
    second before the car moves"). Keep it with `note`.
 4. **The input check.** Before recording anything, `probe <window> w --seconds 1.5 --region x,y,w,h` holds each
