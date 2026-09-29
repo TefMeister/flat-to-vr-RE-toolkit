@@ -3,6 +3,8 @@
 For any person or AI that can run a command and (only when needed) look at a picture. Windows only.
 
     look   <window> OUT.png [--region x,y,w,h] [--scale 0.5]   save what the window shows (all or a patch)
+    windowcheck <window>                                       windowed or fullscreen? Measures the window AND
+                                                               the screen; then ASK the person to confirm
     press  <window> KEY [--route FILE] [--changed OUT.png]     press a key; optionally record it, and save
                                                                a crop of only what the key changed
     click  <window> x,y [--route FILE]                         left-click a point (fractions of the window);
@@ -61,6 +63,32 @@ def need_window(title):
         say(event="error", error="the window could not be brought to the front; nothing was sent")
         sys.exit(1)
     return hwnd
+
+
+def window_verdict(hwnd):
+    """Is the game in a real window, or fullscreen? Measures the window AND the screen: a game told only a
+    size can switch the whole display to that size (Prototype, 2026-09-29), so the window alone lies."""
+    import ctypes
+    import ctypes.wintypes as wt
+    u = ctypes.windll.user32
+    r = wt.RECT()
+    u.GetWindowRect(hwnd, ctypes.byref(r))
+    win = (r.right - r.left, r.bottom - r.top)
+    screen = (u.GetSystemMetrics(0), u.GetSystemMetrics(1))
+    covers = r.left <= 0 and r.top <= 0 and win[0] >= screen[0] and win[1] >= screen[1]
+    return dict(window=list(win), client=list(__import__("mom_window").client_size(hwnd)), screen=list(screen),
+                verdict="FULLSCREEN (the window covers the whole screen)" if covers else "windowed",
+                ask_the_person="Is the game in a window of the right size, and can you still see the session "
+                               "beside it? Their answer settles it.")
+
+
+def cmd_windowcheck(a):
+    import mom_window as W
+    hwnd = W.find_window(a.window)
+    if not hwnd:
+        say(event="error", error=f"no visible window whose title contains {a.window!r}")
+        sys.exit(1)
+    say(event="windowcheck", **window_verdict(hwnd))
 
 
 def cmd_look(a):
@@ -159,6 +187,7 @@ def cmd_record(a):
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
     print_brief(route)                      # what the person should play, before they start
+    say(event="window", **window_verdict(hwnd))  # confirm with the person before recording
     if not any("play" in st or "key" in st for st in route["steps"]):
         say(event="first_recording", note="first recording of this route: has the person rehearsed it? They launch the game once themselves, play the route with nothing recording and note every button each screen needs; then record, with no mistaken presses and no guessing")
     say(event="recording", keys="play normally", key_screen="Page Up = a key is needed on this screen",
@@ -298,6 +327,7 @@ def register_common(sub):
     s.add_argument("--seconds", type=float, default=1.0); s.add_argument("--region"); s.add_argument("--watch-file")
     s.add_argument("--out"); s.set_defaults(f=cmd_probe)
     s = sub.add_parser("note"); s.add_argument("route"); s.add_argument("text"); s.set_defaults(f=cmd_note)
+    s = sub.add_parser("windowcheck"); s.add_argument("window"); s.set_defaults(f=cmd_windowcheck)
     s = sub.add_parser("brief"); s.add_argument("route")
     s.add_argument("--why"); s.add_argument("--start"); s.add_argument("--move", action="append")
     s.add_argument("--screen"); s.add_argument("--avoid"); s.add_argument("--end"); s.set_defaults(f=cmd_brief)
