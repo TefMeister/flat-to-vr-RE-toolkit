@@ -2,11 +2,14 @@
 
 While recording, every key the person presses in the game window is noted with its exact timing (down and up,
 several keys at once, however long each is held). Two MARKER keys save a picture of the window at that moment, to
-be turned into a checkpoint afterwards, and say what kind of screen it is (the player's own scheme, 2026-09-28):
-    numpad +   "a key is needed here"   (a menu, a prompt: the next key the person presses gets past it)
-    numpad -   "just wait here"         (a logo, a loading screen, a video: no key, it ends by itself)
-    numpad *   stop recording
-The three keys are kept away from the game. Keys the tool itself sends are ignored, so a replay is never recorded by mistake.
+be turned into a checkpoint afterwards, and say what kind of screen it is (the player's own scheme, 2026-09-28;
+moved off the numpad 2026-09-29, because our own mods put their hotkeys on the numpad):
+    Page Up    "a key is needed here"   (a menu, a prompt: the next key the person presses gets past it)
+    Page Down  "just wait here"         (a logo, a loading screen, a video: no key, it ends by itself)
+    Home       undo the last marker     (pressed by mistake: its picture is dropped too)
+    End        stop recording
+Only the grey keys count (with NumLock off, the number pad sends the same keys; those are recorded as normal
+keys). The four are kept away from the game while recording. Keys the tool itself sends are ignored, so a replay is never recorded by mistake.
 
 The result goes into a route file as steps:
     {"play": [[0.0, "w", 1], [1.42, "w", 0], [0.10, "d", 1], ...]}   seconds since the previous event, key, 1 down / 0 up
@@ -21,10 +24,12 @@ import os
 import time
 
 # ---- Settings ----------------------------------------------------------------
-KEY_MARK_VK = 0x6B   # numpad +  (VK_ADD)       "a key is needed here"
-WAIT_MARK_VK = 0x6D  # numpad -  (VK_SUBTRACT)  "just wait here"
-STOP_VK = 0x6A       # numpad *  (VK_MULTIPLY)
+KEY_MARK_VK = 0x21   # Page Up    (VK_PRIOR)  "a key is needed here"
+WAIT_MARK_VK = 0x22  # Page Down  (VK_NEXT)   "just wait here"
+UNDO_VK = 0x24       # Home       (VK_HOME)   undo the last marker
+STOP_VK = 0x23       # End        (VK_END)    stop recording
 MARK_KIND = {KEY_MARK_VK: "key", WAIT_MARK_VK: "wait"}
+CONTROL_VKS = (KEY_MARK_VK, WAIT_MARK_VK, UNDO_VK, STOP_VK)
 WH_KEYBOARD_LL = 13
 WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP = 0x0100, 0x0101, 0x0104, 0x0105
 WM_QUIT, WM_APP = 0x0012, 0x8000
@@ -70,7 +75,7 @@ def build_steps(events, frames):
 
 
 def record(hwnd, frames_dir):
-    """Record until numpad * is pressed. Returns (events, frames)."""
+    """Record until End is pressed. Returns (events, frames)."""
     import mom_window as W
     user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
     names = {v: k for k, v in W.KEYS.items()}            # (scan, extended) -> key name
@@ -93,13 +98,16 @@ def record(hwnd, frames_dir):
         if code == 0:
             k = ctypes.cast(lparam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
             down = wparam in (WM_KEYDOWN, WM_SYSKEYDOWN)
-            if k.vkCode in (KEY_MARK_VK, WAIT_MARK_VK, STOP_VK):
+            if k.vkCode in CONTROL_VKS and k.flags & LLKHF_EXTENDED:   # the grey keys, not the number pad
                 if down and k.vkCode in MARK_KIND:
                     pending_markers.append((time.time() - start, MARK_KIND[k.vkCode]))
                     user32.PostThreadMessageW(thread, WM_APP, 0, 0)
+                elif down and k.vkCode == UNDO_VK:
+                    pending_markers.append((time.time() - start, None))
+                    user32.PostThreadMessageW(thread, WM_APP, 0, 0)
                 elif down:
                     user32.PostThreadMessageW(thread, WM_QUIT, 0, 0)
-                return 1                                   # keep these two keys away from the game
+                return 1                                   # keep these keys away from the game
             if (INCLUDE_INJECTED or not (k.flags & LLKHF_INJECTED)) and user32.GetForegroundWindow() == hwnd:
                 name = names.get((k.scanCode, bool(k.flags & LLKHF_EXTENDED)))
                 if name:
@@ -116,6 +124,20 @@ def record(hwnd, frames_dir):
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
             while pending_markers:                         # pictures are taken here, outside the hook
                 t, kind = pending_markers.pop(0)
+                if kind is None:                           # Home: undo the last marker and its picture
+                    marks = [i for i, e in enumerate(events) if e[1] == "marker"]
+                    if marks:
+                        events.pop(marks[-1])
+                        n = len(frames) - 1
+                        path = frames.pop(n)
+                        try:
+                            os.remove(path)
+                        except OSError:
+                            pass
+                        print(f'{{"event": "undone", "n": {n}}}', flush=True)
+                    else:
+                        print('{"event": "undone", "n": null, "note": "no marker to undo"}', flush=True)
+                    continue
                 n = len(frames)
                 path = os.path.join(frames_dir, f"{n:02d}.png")
                 W.capture(hwnd).save(path)

@@ -18,7 +18,7 @@ setup, done together:
    wherever you last stopped, and then a recorded drive starts somewhere else. The person plays to it and says which
    slot it is (`note route.json "..."` keeps it in the route).
 2. **The menus.** For each screen, the person says which button gets past it. Simplest: they play through the
-   menus once while `record` runs (below): **numpad +** on a screen that needs a key, **numpad −** on one that
+   menus once while `record` runs (below): **Page Up** on a screen that needs a key, **Page Down** on one that
    just needs waiting for.
 3. **The controls.** The person names the minimum buttons to move and look, and how they behave ("hold W about a
    second before the car moves"). Keep it with `note`.
@@ -36,8 +36,12 @@ setup, done together:
    such as an on-screen map.
 6. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
    press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
-   guessed. On each screen they tap **numpad +** if a key is needed there (then press it), or **numpad −** if it just
-   needs waiting for (a logo, a loading screen, a video), and **numpad \*** to stop. These three never reach the game. Then
+   guessed. On each screen they tap **Page Up** if a key is needed there (then press it), or **Page Down** if it just
+   needs waiting for (a logo, a loading screen, a video), **Home** to undo a mark pressed by mistake, and **End** to
+   stop. These four never reach the game while recording (the grey keys only; the number pad with NumLock off is
+   recorded as ordinary keys). They were on the number pad until 2026-09-29, when a recording showed why not: our
+   own mods keep their hotkeys there, and a press that reached the game moved the Alice mod's view. Old games that
+   look up and down with Page Up/Down cannot have those keys recorded; tell the person first. Then
    `mark-image route.json N name --region x,y,w,h` turns marker N's saved picture into a checkpoint; the picture
    stays on the PC.
 
