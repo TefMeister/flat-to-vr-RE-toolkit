@@ -3,8 +3,9 @@
 For any person or AI that can run a command and (only when needed) look at a picture. Windows only.
 
     look   <window> OUT.png [--region x,y,w,h] [--scale 0.5]   save what the window shows (all or a patch)
-    windowcheck <window>                                       windowed or fullscreen? Measures the window AND
-                                                               the screen; then ASK the person to confirm
+    windowcheck <window> [--route FILE] [--confirmed]          windowed or fullscreen? Measures the window AND
+                                                               the screen; ASK the person ONCE per game, then
+                                                               --confirmed stores their yes in the route
     press  <window> KEY [--route FILE] [--changed OUT.png]     press a key; optionally record it, and save
                                                                a crop of only what the key changed
     click  <window> x,y [--route FILE]                         left-click a point (fractions of the window);
@@ -83,12 +84,29 @@ def window_verdict(hwnd):
 
 
 def cmd_windowcheck(a):
+    """Windowed or fullscreen? The person confirms ONCE per game (--confirmed stores it in the route); after
+    that the check only measures, and asks again only if the window no longer matches what was confirmed."""
+    import datetime
     import mom_window as W
     hwnd = W.find_window(a.window)
     if not hwnd:
         say(event="error", error=f"no visible window whose title contains {a.window!r}")
         sys.exit(1)
-    say(event="windowcheck", **window_verdict(hwnd))
+    v = window_verdict(hwnd)
+    route = R.load(a.route) if a.route else None
+    ok = route.get("window_confirmed") if route else None
+    if a.confirmed:
+        if not route:
+            say(event="error", error="--confirmed needs --route (the confirmation is kept in the route file)")
+            sys.exit(1)
+        route["window_confirmed"] = {"date": datetime.date.today().isoformat(), "window": v["window"]}
+        R.save(route, a.route)
+        v.pop("ask_the_person")
+        v["confirmed"] = "stored: this game will not ask again while the window stays this size"
+    elif ok and v["verdict"] == "windowed" and ok.get("window") == v["window"]:
+        v.pop("ask_the_person")
+        v["confirmed"] = f"the person confirmed this window on {ok['date']}; no need to ask"
+    say(event="windowcheck", **v)
 
 
 def cmd_look(a):
@@ -187,7 +205,8 @@ def cmd_record(a):
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
     print_brief(route)                      # what the person should play, before they start
-    say(event="window", **window_verdict(hwnd))  # confirm with the person before recording
+    if not route.get("window_confirmed"):
+        say(event="window", **window_verdict(hwnd))  # confirm with the person before recording
     if not any("play" in st or "key" in st for st in route["steps"]):
         say(event="first_recording", note="first recording of this route: has the person rehearsed it? They launch the game once themselves, play the route with nothing recording and note every button each screen needs; then record, with no mistaken presses and no guessing")
     say(event="recording", keys="play normally", key_screen="Page Up = a key is needed on this screen",
@@ -327,7 +346,8 @@ def register_common(sub):
     s.add_argument("--seconds", type=float, default=1.0); s.add_argument("--region"); s.add_argument("--watch-file")
     s.add_argument("--out"); s.set_defaults(f=cmd_probe)
     s = sub.add_parser("note"); s.add_argument("route"); s.add_argument("text"); s.set_defaults(f=cmd_note)
-    s = sub.add_parser("windowcheck"); s.add_argument("window"); s.set_defaults(f=cmd_windowcheck)
+    s = sub.add_parser("windowcheck"); s.add_argument("window"); s.add_argument("--route")
+    s.add_argument("--confirmed", action="store_true"); s.set_defaults(f=cmd_windowcheck)
     s = sub.add_parser("brief"); s.add_argument("route")
     s.add_argument("--why"); s.add_argument("--start"); s.add_argument("--move", action="append")
     s.add_argument("--screen"); s.add_argument("--avoid"); s.add_argument("--end"); s.set_defaults(f=cmd_brief)
