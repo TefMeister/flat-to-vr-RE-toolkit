@@ -15,8 +15,12 @@ For any person or AI that can run a command and (only when needed) look at a pic
     new    FILE --game G --window W --route R [--from S --to S]   start an empty route file; --from/--to name
                                                                where it starts and ends (closed, gameplay,
                                                                keybindings...), so a game's routes form a MAP
-    add    FILE (--sleep S | --launch URL | --picture NAME)    add a plain step; --picture saves what the
-                                                               screen shows (a key bindings page) at that point
+    add    FILE (--sleep S | --launch URL | --picture NAME | --button TEXT --dialog TITLE)
+                                                               add a plain step; --picture saves what the
+                                                               screen shows (a key bindings page); --button
+                                                               presses a launcher dialog's button (BM_CLICK)
+    A route's "key_input" says how the game takes keys: "sendinput" (default), "post" (window messages, for
+    games SendInput never reaches) or "both".
     routes FOLDER                                              the map: every route of a game, start -> end
     SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
     record <window> FILE [--frames DIR]                        the person plays; keys + timing recorded;
@@ -203,6 +207,8 @@ def cmd_add(a):
         route["steps"].append({"sleep": a.sleep})
     elif a.picture:
         route["steps"].append({"picture": a.picture})       # the route's result is a picture (a settings page)
+    elif a.button:
+        route["steps"].append({"button": a.button, "dialog": a.dialog})   # a launcher's Play button
     else:
         route["steps"].append({"launch": a.launch})
     R.save(route, a.route)
@@ -366,6 +372,7 @@ def register_common(sub):
     s.set_defaults(f=cmd_new)
     s = sub.add_parser("add"); s.add_argument("route"); g = s.add_mutually_exclusive_group(required=True)
     g.add_argument("--sleep", type=float); g.add_argument("--launch"); g.add_argument("--picture")
+    g.add_argument("--button"); s.add_argument("--dialog", default="")
     s.set_defaults(f=cmd_add)
     s = sub.add_parser("routes"); s.add_argument("folder"); s.set_defaults(f=cmd_routes)
     s = sub.add_parser("record"); s.add_argument("window"); s.add_argument("route"); s.add_argument("--frames")

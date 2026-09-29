@@ -69,6 +69,15 @@ Move-o-matiC uses the same idea: short named movement routes, each from a known 
 
 First game with a map: Prototype, 2026-09-29 (closed → gameplay 62 s, closed → key bindings 65 s with two pictures, gameplay → closed).
 
+## Games that are awkward to drive (2026-09-29, Manhunt)
+
+- **Keys that SendInput never reaches.** Some games only read keyboard *window messages*. A route's `"key_input"` picks the delivery: `"sendinput"` (default), `"post"` (PostMessage WM_KEYDOWN/WM_KEYUP to the game window) or `"both"`. The recorder is unaffected: the person's real keyboard reaches every game.
+- **A launcher dialog before the game.** `add FILE --button Play --dialog "Manhunt launcher"` presses the button with BM_CLICK (no mouse, no focus; ANSI dialogs are read correctly). Give the launch step `"wait_for": "<launcher title>"` so it waits for the dialog rather than the game window.
+- **Two windows with the same name.** A window title starting with `=` must match exactly: `=MANHUNT` is the game, not "Manhunt launcher".
+- **A game whose own exit is closing its window.** `{"close": true}` sends WM_CLOSE and waits for it to go; never a kill.
+
+Manhunt, recorded with the player on the keyboard: closed game → playing in 22-25 s, twice, every checkpoint matched.
+
 ## State-o-matiC: what is the game doing right now?
 
 `state_o_matic.py watch <window> [--poke KEY] [--states FILE]` looks for two seconds and says **menu or loading
