@@ -73,7 +73,9 @@ def wait_for(route, i, step, hwnd, timeout, lost_dir):
     still, hung_since, d, unchanged = R.StillWatch(), None, 255.0, 0.0
     while time.time() < end:
         if not W.is_open(hwnd):
-            gone(i, f"the game window closed while waiting for '{step['wait']}' (crashed or quit)")
+            hwnd = W.find_window(route["window"])     # some games swap their start-up window for the real one
+            if not hwnd:
+                gone(i, f"the game window closed while waiting for '{step['wait']}' (crashed or quit)")
         if W.is_hung(hwnd):
             hung_since = hung_since or time.time()
             if time.time() - hung_since >= HUNG_GIVE_UP_S:
@@ -89,9 +91,12 @@ def wait_for(route, i, step, hwnd, timeout, lost_dir):
             if not W.is_open(hwnd):
                 gone(i, "the game window closed")
             raise
+        except RuntimeError:                       # no picture yet: a window still starting up, or minimised
+            time.sleep(POLL_S)                     # for a moment (Alice, 2026-09-29); keep waiting
+            continue
         d, ok = R.matches(route, step["wait"], img)
         if ok:
-            return d
+            return d, hwnd
         unchanged = still.update(img, time.time())
         if next_press and time.time() >= next_press:
             if "key" in last_action:
@@ -155,7 +160,7 @@ def run_route(route, start, timeout, lost_dir):
         elif "todo" in step:
             say(event="skip", step=i, why="a marker that is not a checkpoint yet (mark-image turns it into one)")
         elif "wait" in step:
-            d = wait_for(route, i, step, hwnd, timeout, lost_dir)
+            d, hwnd = wait_for(route, i, step, hwnd, timeout, lost_dir)
             say(event="reached", step=i, checkpoint=step["wait"], distance=round(d, 2))
     say(event="done", route=route["route"])
 
