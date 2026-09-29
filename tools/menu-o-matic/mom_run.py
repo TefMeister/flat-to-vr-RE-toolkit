@@ -137,6 +137,13 @@ def run_route(route, start, timeout, lost_dir):
         if "sleep" in step:
             time.sleep(step["sleep"])
             continue
+        if "picture" in step:                          # the route's RESULT: e.g. the key bindings page
+            os.makedirs(lost_dir, exist_ok=True)
+            out = os.path.join(lost_dir, f"{route['route']}-{step['picture']}.png")
+            W.capture(hwnd or W.find_window(route["window"])).save(out)
+            say(event="picture", step=i, name=step["picture"], out=out,
+                note="read it once and keep what it says in the route (note), so it is not looked at again")
+            continue
         if not hwnd:
             hwnd = W.wait_window(route["window"], WINDOW_TIMEOUT_S)
         if not hwnd or not W.is_open(hwnd):

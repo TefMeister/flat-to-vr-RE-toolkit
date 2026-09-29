@@ -12,8 +12,12 @@ For any person or AI that can run a command and (only when needed) look at a pic
                                                                optionally record it
     mark   <window> FILE NAME --region x,y,w,h [--note ..]     save a checkpoint (and a step that waits for it)
     check  <window> FILE NAME                                  does the screen match that checkpoint now?
-    new    FILE --game G --window W --route R                  start an empty route file
-    add    FILE (--sleep S | --launch URL)                     add a plain step
+    new    FILE --game G --window W --route R [--from S --to S]   start an empty route file; --from/--to name
+                                                               where it starts and ends (closed, gameplay,
+                                                               keybindings...), so a game's routes form a MAP
+    add    FILE (--sleep S | --launch URL | --picture NAME)    add a plain step; --picture saves what the
+                                                               screen shows (a key bindings page) at that point
+    routes FOLDER                                              the map: every route of a game, start -> end
     SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
     record <window> FILE [--frames DIR]                        the person plays; keys + timing recorded;
                                                                Page Up = key needed here, Page Down = just
@@ -187,13 +191,20 @@ def cmd_new(a):
     if os.path.exists(a.route):
         say(event="error", error=f"{a.route} already exists")
         sys.exit(1)
-    R.save(R.new_route(a.game, a.window, a.name), a.route)
-    say(event="new", route=a.route)
+    route = R.new_route(a.game, a.window, a.name)
+    route["from"], route["to"] = a.start_state, a.end_state      # a MAP of the game: routes join end to start
+    R.save(route, a.route)
+    say(event="new", route=a.route, start=a.start_state, end=a.end_state)
 
 
 def cmd_add(a):
     route = R.load(a.route)
-    route["steps"].append({"sleep": a.sleep} if a.sleep is not None else {"launch": a.launch})
+    if a.sleep is not None:
+        route["steps"].append({"sleep": a.sleep})
+    elif a.picture:
+        route["steps"].append({"picture": a.picture})       # the route's result is a picture (a settings page)
+    else:
+        route["steps"].append({"launch": a.launch})
     R.save(route, a.route)
     say(event="add", step=route["steps"][-1])
 
@@ -310,6 +321,23 @@ def cmd_brief(a):
     say(event="brief", route=a.route, saved=changed)
 
 
+def cmd_routes(a):
+    """The map of one game: every route in its folder, where it starts and where it ends, so routes can be
+    chained (closed -> gameplay, then gameplay -> key bindings)."""
+    import glob
+    rows = []
+    for path in sorted(glob.glob(os.path.join(a.folder, "*.json"))):
+        try:
+            r = R.load(path)
+        except Exception:
+            continue
+        rows.append(dict(route=os.path.basename(path), start=r.get("from", "?"), end=r.get("to", "?"),
+                         steps=len(r.get("steps", [])), checkpoints=len(r.get("checkpoints", {})),
+                         what=(r.get("brief") or {}).get("why", ""),
+                         window_confirmed=(r.get("window_confirmed") or {}).get("date")))
+    say(event="routes", folder=a.folder, routes=rows)
+
+
 def cmd_note(a):
     route = R.load(a.route)
     route.setdefault("setup_notes", []).append(a.text)
@@ -333,9 +361,13 @@ def register_common(sub):
     s.set_defaults(f=cmd_check)
     s = sub.add_parser("new"); s.add_argument("route"); s.add_argument("--game", required=True)
     s.add_argument("--window", required=True); s.add_argument("--route", dest="name", required=True)
+    s.add_argument("--from", dest="start_state", default="closed", help="where it starts, e.g. closed, gameplay")
+    s.add_argument("--to", dest="end_state", default="gameplay", help="where it ends, e.g. gameplay, keybindings")
     s.set_defaults(f=cmd_new)
     s = sub.add_parser("add"); s.add_argument("route"); g = s.add_mutually_exclusive_group(required=True)
-    g.add_argument("--sleep", type=float); g.add_argument("--launch"); s.set_defaults(f=cmd_add)
+    g.add_argument("--sleep", type=float); g.add_argument("--launch"); g.add_argument("--picture")
+    s.set_defaults(f=cmd_add)
+    s = sub.add_parser("routes"); s.add_argument("folder"); s.set_defaults(f=cmd_routes)
     s = sub.add_parser("record"); s.add_argument("window"); s.add_argument("route"); s.add_argument("--frames")
     s.set_defaults(f=cmd_record)
     s = sub.add_parser("mark-image"); s.add_argument("route"); s.add_argument("n", type=int); s.add_argument("name")
