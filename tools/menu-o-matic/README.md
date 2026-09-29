@@ -9,7 +9,7 @@ Windows only. Needs Python 3 and Pillow (`pip install pillow`).
 
 ## Setting a game up (once, with the person who plays it)
 
-**First, the game runs in a window, and the person confirms it.** `windowcheck <window>` measures the window and the screen (a game told only a size may switch the whole display and run fullscreen; the window then measures right and is still fullscreen). Then ask the person whether it is in a window of the right size and whether they can still see the session beside it. Their answer settles it. A fullscreen game hides the session from them.
+**First, the game runs in a window, and the person confirms it.** `windowcheck <window>` measures the window and the screen (a game told only a size may switch the whole display and run fullscreen; the window then measures right and is still fullscreen). Then ask the person whether it is in a window of the right size and whether they can still see the session beside it. Their answer settles it. A fullscreen game hides the session from them. **Once per game:** `windowcheck <window> --route route.json --confirmed` stores their yes, and after that the check only measures and asks again only if the window changes size.
 
 Automation only works when the basics come from someone who knows the game. Guessing costs whole sessions: on
 the day this was written, a car was tapped forward for half an hour when it needed the throttle HELD, and a
