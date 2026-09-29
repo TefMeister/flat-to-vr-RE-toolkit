@@ -34,7 +34,11 @@ setup, done together:
    Also note anything about the game world that changes between runs (Burnout's clock runs on, so a night
    recording replays in daylight): checkpoints should then sit on something that does not change with it,
    such as an on-screen map.
-6. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
+6. **A rehearsal first, on a game's first recording** (the player's rule, 2026-09-29). The person launches the
+   game once themselves, when they are ready, and plays the route with nothing recording, paying attention to
+   (or writing down) every button each screen needs. Only then is it recorded, so the recording holds no
+   mistaken presses and no guessing. `record` says so when a route has no key steps yet.
+7. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
    press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
    guessed. On each screen they tap **Page Up** if a key is needed there (then press it), or **Page Down** if it just
    needs waiting for (a logo, a loading screen, a video), **Home** to undo a mark pressed by mistake, and **End** to
