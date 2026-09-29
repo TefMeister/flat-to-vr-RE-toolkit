@@ -56,6 +56,19 @@ throws the timing off. If a replay drifts, it stops with "lost"; load the save a
 than restarting the game. The recorder ignores keys that programs send, so a replay is never recorded by mistake.
 Keyboard only for now: mouse movement is not recorded yet.
 
+## A map of routes, not one route (2026-09-29)
+
+The player's idea: Menu-o-matiC is not only "launch to gameplay". Each game gets **a set of named routes, each with a start and an end** (`new ... --from closed --to keybindings`), and `routes <folder>` lists them as a map, so they can be chained (`run launch_to_gameplay.json gameplay_to_x.json`). Typical first routes:
+
+1. `closed -> gameplay`: the everyday one.
+2. `closed -> keybindings`: the controls page. It ends with `picture` steps (`add FILE --picture NAME`), which save what the screen shows; they are read ONCE and the keys are stored in the route (`controls`), so a movement recording knows the controls without asking. (A game that keeps its keys in a settings file: read the file instead.)
+3. Any other setting that has to be reached quickly (graphics, subtitles, a debug page).
+4. `gameplay -> closed`: quitting through the game's own menu.
+
+Move-o-matiC uses the same idea: short named movement routes, each from a known spot (a checkpoint the game can restore) to another, recorded at different times and in different conditions.
+
+First game with a map: Prototype, 2026-09-29 (closed → gameplay 62 s, closed → key bindings 65 s with two pictures, gameplay → closed).
+
 ## State-o-matiC: what is the game doing right now?
 
 `state_o_matic.py watch <window> [--poke KEY] [--states FILE]` looks for two seconds and says **menu or loading
