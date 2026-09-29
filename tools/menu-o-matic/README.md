@@ -14,7 +14,8 @@ the day this was written, a car was tapped forward for half an hour when it need
 tool waited for an intro video while "Press Any Button" was already on screen. So each game starts with a short
 setup, done together:
 
-1. **A save past the tutorials** that always loads in the same spot. The person plays to it and says which
+1. **A save past the tutorials** that always loads in the same spot. Check it does: some games put you back
+   wherever you last stopped, and then a recorded drive starts somewhere else. The person plays to it and says which
    slot it is (`note route.json "..."` keeps it in the route).
 2. **The menus.** For each screen, the person says which button gets past it. Simplest: they play through the
    menus once while `record` runs (below): **numpad +** on a screen that needs a key, **numpad −** on one that
@@ -25,7 +26,15 @@ setup, done together:
    control and says whether the pointed-at spot changed (brake lights, a speedometer, the character) and, with
    `--watch-file`, whether a mod's log wrote anything. If a key reaches the game but the screen looks the same,
    that is known at once instead of being mistaken for a slow load.
-5. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
+5. **The test brief, before any movement is recorded.** The person asked for this on the first Burnout drive
+   (2026-09-29): *what is the test for, how far does it move, does it turn?* `brief route.json --why ..
+   --start .. --move .. --move .. --screen .. --avoid .. --end ..` writes down exactly what has to happen on
+   screen for the test to gather its data, and `brief route.json` prints it as a short numbered sheet. `record`
+   prints it first, so the person plays what the test needs instead of a drive that happens to be recorded.
+   Also note anything about the game world that changes between runs (Burnout's clock runs on, so a night
+   recording replays in daylight): checkpoints should then sit on something that does not change with it,
+   such as an on-screen map.
+6. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
    press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
    guessed. On each screen they tap **numpad +** if a key is needed there (then press it), or **numpad −** if it just
    needs waiting for (a logo, a loading screen, a video), and **numpad \*** to stop. These three never reach the game. Then
