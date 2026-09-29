@@ -80,7 +80,11 @@ class BITMAPINFOHEADER(ctypes.Structure):
 
 
 def find_window(title_part):
-    """First visible top-level window whose title contains `title_part` (case-insensitive), or None."""
+    """First visible top-level window whose title contains `title_part` (case-insensitive), or None.
+    A title starting with '=' must match exactly (case-insensitive): '=MANHUNT' is the game, not 'Manhunt launcher'."""
+    exact = title_part.startswith("=")
+    if exact:
+        title_part = title_part[1:]
     found = []
 
     @ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
@@ -90,7 +94,8 @@ def find_window(title_part):
             if n:
                 buf = ctypes.create_unicode_buffer(n + 1)
                 u.GetWindowTextW(hwnd, buf, n + 1)
-                if title_part.lower() in buf.value.lower():
+                t = buf.value.lower()
+                if (t == title_part.lower()) if exact else (title_part.lower() in t):
                     found.append(hwnd)
         return True
 
@@ -117,6 +122,8 @@ def focus(hwnd):
     2026-09-28 a plain SetForegroundWindow failed and a key went to a browser instead. So: restore if
     minimised, attach to the current foreground thread's input, and as a last resort tap Alt (which lifts the
     lock) before asking again."""
+    global _target
+    _target = hwnd
     if u.GetForegroundWindow() == hwnd:
         u.SetActiveWindow(hwnd)   # some games only take keys when their window is also ACTIVE
         return True
@@ -133,8 +140,8 @@ def focus(hwnd):
         u.AttachThreadInput(me, other, False)
     time.sleep(FOCUS_SETTLE_S)
     if u.GetForegroundWindow() != hwnd:
-        _send(ALT_SCAN, False, False)
-        _send(ALT_SCAN, False, True)
+        _sendinput(ALT_SCAN, False, False)
+        _sendinput(ALT_SCAN, False, True)
         u.SetForegroundWindow(hwnd)
         time.sleep(FOCUS_SETTLE_S)
     return u.GetForegroundWindow() == hwnd
@@ -176,10 +183,61 @@ def capture(hwnd):
     return Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1).convert("RGB")
 
 
-def _send(scan, extended, up):
+# How keys reach the game. Most games read the keyboard as SendInput delivers it; some only read window
+# messages, and SendInput never reaches them (Manhunt, 2026-09-11: W by SendInput did nothing straight after a
+# posted W had walked). A route says which with "key_input": "sendinput" (default), "post" or "both".
+KEY_MODE = "sendinput"
+_target = None                     # the game window, set by focus(); posted keys go here
+WM_KEYDOWN, WM_KEYUP, MAPVK_VSC_TO_VK_EX = 0x0100, 0x0101, 3
+
+
+def _sendinput(scan, extended, up):
     flags = KEYEVENTF_SCANCODE | (KEYEVENTF_EXTENDEDKEY if extended else 0) | (KEYEVENTF_KEYUP if up else 0)
     event = INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(0, scan, flags, 0, None)))
     u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+
+
+def _post(scan, extended, up):
+    if not _target:
+        return
+    vk = u.MapVirtualKeyW(scan | (0xE000 if extended else 0), MAPVK_VSC_TO_VK_EX) or u.MapVirtualKeyW(scan, 1)
+    lparam = 1 | (scan << 16) | ((1 << 24) if extended else 0) | ((0xC0000000) if up else 0)
+    u.PostMessageW(_target, WM_KEYUP if up else WM_KEYDOWN, vk, ctypes.c_long(lparam & 0xFFFFFFFF if lparam < 2**31 else lparam - 2**32))
+
+
+def _send(scan, extended, up):
+    if KEY_MODE in ("sendinput", "both"):
+        _sendinput(scan, extended, up)
+    if KEY_MODE in ("post", "both"):
+        _post(scan, extended, up)
+
+
+def click_button(dialog_title, button_text):
+    """Press a button in an ordinary Windows dialog (a game's launcher 'Play' button) with BM_CLICK: no mouse,
+    no focus needed. Returns True if the button was found."""
+    dlg = find_window(dialog_title)
+    if not dlg:
+        return False
+    found = []
+
+    @ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
+    def cb(child, _):
+        # ANSI dialogs (Manhunt's launcher) answer GetWindowTextW with only the first letter ('P' for Play),
+        # so read both ways and accept either
+        wbuf = ctypes.create_unicode_buffer(256)
+        u.GetWindowTextW(child, wbuf, 256)
+        abuf = ctypes.create_string_buffer(256)
+        u.GetWindowTextA(child, abuf, 256)
+        names = {wbuf.value, abuf.value.decode("mbcs", "replace")}
+        if any(n.replace("&", "").strip().lower() == button_text.lower() for n in names):
+            found.append(child)
+        return True
+
+    u.EnumChildWindows(dlg, cb, 0)
+    if not found:
+        return False
+    u.SendMessageW(found[0], 0x00F5, 0, 0)          # BM_CLICK
+    return True
 
 
 def is_open(hwnd):

@@ -16,6 +16,7 @@ import json
 import os
 import subprocess
 import sys
+import ctypes
 import time
 
 import mom_route as R
@@ -118,6 +119,7 @@ def wait_for(route, i, step, hwnd, timeout, lost_dir):
 
 def run_route(route, start, timeout, lost_dir):
     import mom_window as W
+    W.KEY_MODE = route.get("key_input", "sendinput")     # how this game takes keys (mom_window.KEY_MODE)
     hwnd = W.find_window(route["window"])
     for i, step in enumerate(route["steps"]):
         if i < start:
@@ -127,15 +129,39 @@ def run_route(route, start, timeout, lost_dir):
                 say(event="skip", step=i, why="window already open")
                 continue
             os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
-            hwnd = W.wait_window(route["window"], step.get("timeout") or WINDOW_TIMEOUT_S)
+            # "wait_for": a window that appears BEFORE the game's own (a launcher dialog); the game window is
+            # then looked up again at the next step
+            hwnd = W.wait_window(step.get("wait_for") or route["window"], step.get("timeout") or WINDOW_TIMEOUT_S)
             if not hwnd:
                 gone(i, f"no game window within {step.get('timeout') or WINDOW_TIMEOUT_S} s: it did not start, "
                         "or it crashed while starting")
             time.sleep(LAUNCH_SETTLE_S)
+            if step.get("wait_for"):
+                hwnd = None
             say(event="launched", step=i)
             continue
         if "sleep" in step:
             time.sleep(step["sleep"])
+            continue
+        if "close" in step:                            # ask the window to close (WM_CLOSE), for games whose own
+            target = hwnd or W.find_window(route["window"])   # exit is exactly that (Manhunt); never a kill
+            if target:
+                ctypes.windll.user32.SendMessageTimeoutW(target, 0x0010, 0, 0, 2, 5000, None)
+            end = time.time() + (step.get("timeout") or 30)
+            while time.time() < end and target and W.is_open(target):
+                time.sleep(0.5)
+            say(event="closed", step=i, still_open=bool(target and W.is_open(target)))
+            continue
+        if "button" in step:                           # a launcher dialog's button, pressed with BM_CLICK
+            end = time.time() + (step.get("timeout") or WINDOW_TIMEOUT_S)
+            while not W.click_button(step["dialog"], step["button"]):
+                if time.time() > end:
+                    gone(i, f"no '{step['button']}' button in a window titled like '{step['dialog']}'")
+                time.sleep(1.0)
+            say(event="button", step=i, button=step["button"])
+            hwnd = W.wait_window(route["window"], step.get("timeout") or WINDOW_TIMEOUT_S)
+            if not hwnd:
+                gone(i, "the game window did not appear after the button")
             continue
         if "picture" in step:                          # the route's RESULT: e.g. the key bindings page
             os.makedirs(lost_dir, exist_ok=True)
