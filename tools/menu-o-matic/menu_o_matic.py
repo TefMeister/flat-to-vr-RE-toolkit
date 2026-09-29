@@ -159,6 +159,8 @@ def cmd_record(a):
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
     print_brief(route)                      # what the person should play, before they start
+    if not any("play" in st or "key" in st for st in route["steps"]):
+        say(event="first_recording", note="first recording of this route: has the person rehearsed it? They launch the game once themselves, play the route with nothing recording and note every button each screen needs; then record, with no mistaken presses and no guessing")
     say(event="recording", keys="play normally", key_screen="Page Up = a key is needed on this screen",
         wait_screen="Page Down = this screen just needs waiting for", undo="Home = undo the last mark",
         stop="End = stop", pictures=frames_dir)
