@@ -19,9 +19,9 @@ setup, done together:
 1. **A save past the tutorials** that always loads in the same spot. Check it does: some games put you back
    wherever you last stopped, and then a recorded drive starts somewhere else. The person plays to it and says which
    slot it is (`note route.json "..."` keeps it in the route).
-2. **The menus.** For each screen, the person says which button gets past it. Simplest: they play through the
-   menus once while `record` runs (below): **Page Up** on a screen that needs a key, **Page Down** on one that
-   just needs waiting for.
+2. **The menus: three goals per game** (the player's scheme, 2026-09-29): **launch → gameplay**, **launch → key
+   bindings** (pictured, read once, stored as `controls`), and **gameplay → desktop**. Each is recorded on its own,
+   the quickest way through, with the three recorder keys below.
 3. **The controls.** The person names the minimum buttons to move and look, and how they behave ("hold W about a
    second before the car moves"). Keep it with `note`.
 4. **The input check.** Before recording anything, `probe <window> w --seconds 1.5 --region x,y,w,h` holds each
@@ -40,16 +40,16 @@ setup, done together:
    game once themselves, when they are ready, and plays the route with nothing recording, paying attention to
    (or writing down) every button each screen needs. Only then is it recorded, so the recording holds no
    mistaken presses and no guessing. `record` says so when a route has no key steps yet.
-7. **The person plays the route once while it is recorded.** `record <window> route.json` notes every key they
-   press and exactly how long they hold it (several at once is fine), so nothing runs into a wall and no turn is
-   guessed. On each screen they tap **Page Up** if a key is needed there (then press it), or **Page Down** if it just
-   needs waiting for (a logo, a loading screen, a video), **Home** to undo a mark pressed by mistake, and **End** to
-   stop. These four never reach the game while recording (the grey keys only; the number pad with NumLock off is
-   recorded as ordinary keys). They were on the number pad until 2026-09-29, when a recording showed why not: our
-   own mods keep their hotkeys there, and a press that reached the game moved the Alice mod's view. Old games that
-   look up and down with Page Up/Down cannot have those keys recorded; tell the person first. Then
-   `mark-image route.json N name --region x,y,w,h` turns marker N's saved picture into a checkpoint; the picture
-   stays on the PC.
+7. **The person plays the route once while it is recorded, with three keys** (the player's scheme, 2026-09-29):
+   **Home** starts recording (it may be pressed BEFORE the game starts, so skippable logos are caught);
+   **Page Down** means "the next key I press is a step": a picture of the game window is taken at that moment and
+   the very next key is recorded as the one that gets past the screen; **End** stops (a last picture shows where the
+   route ended). Every other key is ignored, so stray presses never reach a route; if something goes wrong, the
+   whole goal is simply recorded again. The three keys never reach the game (grey keys only). Then
+   `mark-image route.json N name --region x,y,w,h` turns each step's picture into a checkpoint, so a replay waits
+   for that screen and then presses its key. (Until 2026-09-29 the recorder kept every key with its timing and
+   used Page Up/Page Down to mark screens; a replay of that shape got stuck on a load screen, and the player asked
+   for this simpler one.) Old games that look up and down with Page Up/Down or Home/End cannot record those keys.
 
 After that, `run` repeats it as often as needed with no pictures, waiting at each checkpoint so a slow load never
 throws the timing off. If a replay drifts, it stops with "lost"; load the save again (its own short route) rather

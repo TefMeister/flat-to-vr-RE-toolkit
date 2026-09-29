@@ -23,9 +23,10 @@ For any person or AI that can run a command and (only when needed) look at a pic
     games SendInput never reaches) or "both".
     routes FOLDER                                              the map: every route of a game, start -> end
     SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
-    record <window> FILE [--frames DIR]                        the person plays; keys + timing recorded;
-                                                               Page Up = key needed here, Page Down = just
-                                                               wait here, Home = undo last mark, End = stop
+    record <window> FILE [--frames DIR]                        the person plays: Home = start (may be before
+                                                               the game starts), Page Down + a key = one step
+                                                               (a picture of the screen + that key), End = stop.
+                                                               Nothing else is recorded; if it goes wrong, redo it
     mark-image FILE N NAME --region x,y,w,h [--image PNG]      marker N (or any saved picture) -> checkpoint
     probe  <window> KEYS [--seconds S] [--region ..] [--watch-file LOG]   does this key reach the game?
     note   FILE "TEXT"                                         keep what the person said (controls, save slot)
@@ -216,26 +217,22 @@ def cmd_add(a):
 
 
 def cmd_record(a):
-    """Setup mode: the person plays; every key and its timing is recorded, Page Up / Page Down mark a moment."""
-    import mom_record as C
-    hwnd = need_window(a.window)
+    """Setup mode, the player's scheme (2026-09-29): Home starts, Page Down + a key records one step, End stops.
+    The window does not have to exist yet: Home may be pressed before the game starts."""
+    import mom_steps as C
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
     print_brief(route)                      # what the person should play, before they start
-    if not route.get("window_confirmed"):
+    hwnd = __import__("mom_window").find_window(a.window)
+    if hwnd and not route.get("window_confirmed"):
         say(event="window", **window_verdict(hwnd))  # confirm with the person before recording
-    if not any("play" in st or "key" in st for st in route["steps"]):
-        say(event="first_recording", note="first recording of this route: has the person rehearsed it? They launch the game once themselves, play the route with nothing recording and note every button each screen needs; then record, with no mistaken presses and no guessing")
-    say(event="recording", keys="play normally", key_screen="Page Up = a key is needed on this screen",
-        wait_screen="Page Down = this screen just needs waiting for", undo="Home = undo the last mark",
-        stop="End = stop", pictures=frames_dir)
-    events, frames = C.record(hwnd, frames_dir)
-    steps = C.build_steps(events, frames)
-    route["steps"].extend(steps)
+    say(event="recording", start="Home = start (may be before the game starts)",
+        step="Page Down, then the key that gets past this screen", stop="End = stop", pictures=frames_dir)
+    steps, final = C.record_steps(a.window, frames_dir)
+    route["steps"].extend(C.to_route_steps(steps, final))
     R.save(route, a.route)
-    say(event="recorded", steps=len(steps), key_events=sum(len(s.get("play", [])) for s in steps),
-        markers=len(frames), note="pictures stay on this PC; never commit them")
-
+    say(event="recorded", steps=len(steps), keys=[s["key"] for s in steps], end_picture=bool(final),
+        note="pictures stay on this PC; never commit them. Next: mark-image each marker, or start again")
 
 def cmd_mark_image(a):
     """Turn marker N (a saved picture) into a checkpoint: a region of that picture."""
