@@ -18,6 +18,10 @@ For any person or AI that can run a command and (only when needed) look at a pic
     mark-image FILE N NAME --region x,y,w,h [--image PNG]      marker N (or any saved picture) -> checkpoint
     probe  <window> KEYS [--seconds S] [--region ..] [--watch-file LOG]   does this key reach the game?
     note   FILE "TEXT"                                         keep what the person said (controls, save slot)
+    brief  FILE [--why ..] [--start ..] [--move .. (repeat)] [--screen ..] [--avoid ..] [--end ..]
+                                                               what the TEST needs to see happen on screen;
+                                                               with no options, prints it. `record` prints it
+                                                               first, so the person knows exactly what to play
     run    FILE [FILE ..] [--from N] [--lost-dir DIR] [--timeout S]  replay one or more routes in a row;
                                                                stops at the first checkpoint that does not match
 
@@ -154,6 +158,7 @@ def cmd_record(a):
     hwnd = need_window(a.window)
     route = R.load(a.route)
     frames_dir = a.frames or os.path.splitext(a.route)[0] + "-frames"
+    print_brief(route)                      # what the person should play, before they start
     say(event="recording", keys="play normally", key_screen="numpad + = a key is needed on this screen",
         wait_screen="numpad - = this screen just needs waiting for", stop="numpad * = stop", pictures=frames_dir)
     events, frames = C.record(hwnd, frames_dir)
@@ -206,6 +211,54 @@ def cmd_probe(a):
     say(**result)
 
 
+BRIEF_FIELDS = (                 # the order a brief is printed in, and what each line is called
+    ("why", "What the test is for"),
+    ("start", "Start from"),
+    ("move", "Then do this"),
+    ("screen", "Keep this on screen"),
+    ("avoid", "Avoid"),
+    ("end", "End like this"),
+)
+
+
+def print_brief(route):
+    """The person-readable sheet: exactly what has to happen on screen for the test to gather its data."""
+    brief = route.get("brief")
+    if not brief:
+        return False
+    print(f"=== TEST BRIEF: {route.get('route', '')} ===", flush=True)
+    for key, label in BRIEF_FIELDS:
+        value = brief.get(key)
+        if not value:
+            continue
+        if isinstance(value, list):
+            print(f"{label}:", flush=True)
+            for n, line in enumerate(value, 1):
+                print(f"  {n}. {line}", flush=True)
+        else:
+            print(f"{label}: {value}", flush=True)
+    print("=" * 40, flush=True)
+    return True
+
+
+def cmd_brief(a):
+    """Write (or, with no options, print) what the test needs to see happen on screen."""
+    route = R.load(a.route)
+    brief = route.setdefault("brief", {})
+    changed = False
+    for key, _ in BRIEF_FIELDS:
+        value = getattr(a, key)
+        if value:
+            brief[key] = value
+            changed = True
+    if changed:
+        R.save(route, a.route)
+    if not print_brief(route):
+        say(event="error", error="this route has no brief yet: add one with --why, --start, --move ...")
+        sys.exit(1)
+    say(event="brief", route=a.route, saved=changed)
+
+
 def cmd_note(a):
     route = R.load(a.route)
     route.setdefault("setup_notes", []).append(a.text)
@@ -242,6 +295,9 @@ def register_common(sub):
     s.add_argument("--seconds", type=float, default=1.0); s.add_argument("--region"); s.add_argument("--watch-file")
     s.add_argument("--out"); s.set_defaults(f=cmd_probe)
     s = sub.add_parser("note"); s.add_argument("route"); s.add_argument("text"); s.set_defaults(f=cmd_note)
+    s = sub.add_parser("brief"); s.add_argument("route")
+    s.add_argument("--why"); s.add_argument("--start"); s.add_argument("--move", action="append")
+    s.add_argument("--screen"); s.add_argument("--avoid"); s.add_argument("--end"); s.set_defaults(f=cmd_brief)
     s = sub.add_parser("run"); s.add_argument("routes", nargs="+")
     s.add_argument("--from", dest="start", type=int, default=0)
     s.add_argument("--lost-dir", default="menu-o-matic-lost")
