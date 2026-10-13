@@ -28,3 +28,7 @@
 # Python bytecode from running tools/ in place
 __pycache__/
 *.pyc
+
+# Hand Freeze build output (rebuilt by tools/hand-freeze/build.bat)
+tools/hand-freeze/build/
+tools/hand-freeze/dist/
