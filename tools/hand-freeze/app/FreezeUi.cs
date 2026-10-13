@@ -21,11 +21,13 @@ using System.Windows.Forms;
 
 class FreezeUi : Form {
     // ---- canvas and layout (canvas pixels; the window shows each one as SCALE x SCALE screen pixels) --------------
-    const int CANVAS_W = 210, CANVAS_H = 300;   // must match make_backgrounds.py W, H
-    const int SWITCH_X = 178, SWITCH_Y = 26, SWITCH_R = 19;
-    const int SECONDS_Y = 76;
-    const int ROW_Y0 = 98, ROW_H = 62, LABEL_X = 10, FLAKE_X = 110, FLAME_X = 170, FLAKE_R = 29;
-    const int STATUS_Y = 286;
+    const int CANVAS_W = 240, CANVAS_H = 356;   // must match make_backgrounds.py W, H
+    const int HEADER_H = 74;
+    const int SWITCH_X = 205, SWITCH_Y = 32, SWITCH_R = 19;
+    const int SECONDS_Y = 90, BOX_H = 20, MINUS_X = 140, NUMBER_X = 160, NUMBER_W = 46, PLUS_X = 208, ARROW_W = 18;
+    const int ROW_Y0 = 114, ROW_H = 72, LABEL_X = 10, FLAKE_X = 122, FLAME_X = 196, FLAKE_R = 28;
+    const int FLAME_DROP = 5;                   // the flame sits a little low, so its tall tongues stay inside the row
+    const int STATUS_Y = 339, PIN_W = 78;
     const int FRAME_MS = 140;               // background frame time (make_backgrounds.py FRAME_MS)
     const int FADE_MS = 500;                // red <-> green switch fade
     const int DEFAULT_SECONDS = 10, MAX_SECONDS = 60;
@@ -189,13 +191,13 @@ class FreezeUi : Form {
     string HitTest(Point screen) {
         float x = screen.X / (float)scale, y = screen.Y / (float)scale;
         if (Dist(x, y, SWITCH_X, SWITCH_Y) <= SWITCH_R) return "switch";
-        if (new RectangleF(CANVAS_W - 30, STATUS_Y - 4, 26, 13).Contains(x, y)) return "pin";
-        if (new RectangleF(118, SECONDS_Y - 1, 16, 15).Contains(x, y)) return "minus";
-        if (new RectangleF(176, SECONDS_Y - 1, 16, 15).Contains(x, y)) return "plus";
+        if (new RectangleF(CANVAS_W - 6 - PIN_W, STATUS_Y - 4, PIN_W, 15).Contains(x, y)) return "pin";
+        if (new RectangleF(MINUS_X, SECONDS_Y - 3, ARROW_W, BOX_H).Contains(x, y)) return "minus";
+        if (new RectangleF(PLUS_X, SECONDS_Y - 3, ARROW_W, BOX_H).Contains(x, y)) return "plus";
         foreach (var r in Rows) {
             int cy = r.Y + ROW_H / 2 - 2;
             if (Dist(x, y, FLAKE_X, cy) <= FLAKE_R) return "freeze" + r.Hands;
-            if (new RectangleF(FLAME_X - 24, cy - 28, 48, 56).Contains(x, y)) return "unfreeze" + r.Hands;
+            if (new RectangleF(FLAME_X - 24, cy - 24, 48, 56).Contains(x, y)) return "unfreeze" + r.Hands;
         }
         return "";
     }
@@ -258,11 +260,11 @@ class FreezeUi : Form {
     }
 
     void DrawHeader(Graphics g) {
-        Panel(g, 4, 4, CANVAS_W - 8, 62);
+        Panel(g, 4, 4, CANVAS_W - 8, HEADER_H);
         Say(g, "HAND", BIG, 12, 9, Paper);
         Say(g, "FREEZE", BIG, 12, 26, Lighter(Ice, 0.3f));
-        Say(g, on ? "On: start or restart the game," : "Off: no game is touched.", SMALL, 12, 47, Paper);
-        Say(g, on ? "then freeze any time." : "Switch on before the game starts.", SMALL, 12, 56, Paper);
+        Say(g, on ? "On: start or restart the game," : "Off: no game is touched.", SMALL, 12, 58, Paper);
+        Say(g, on ? "then freeze any time." : "Switch on before the game starts.", SMALL, 12, 67, Paper);
         // the round switch
         Color c = Mix(Red, Green, fade);
         bool hot = hover == "switch", down = pressed == "switch";
@@ -275,20 +277,20 @@ class FreezeUi : Form {
     }
 
     void DrawSeconds(Graphics g) {
-        Panel(g, 4, SECONDS_Y - 4, CANVAS_W - 8, 22);
-        Say(g, "SECONDS TO FREEZE", SMALL, 12, SECONDS_Y + 2, on ? Paper : Grey(Paper));
-        DrawArrowBox(g, 118, "minus", "<");
-        using (var b = new SolidBrush(Color.FromArgb(200, Ink))) g.FillRectangle(b, 136, SECONDS_Y - 1, 38, 15);
-        Say(g, seconds.ToString(), BIG, 155, SECONDS_Y - 2, on ? Paper : Grey(Paper), true);
-        DrawArrowBox(g, 176, "plus", ">");
+        Panel(g, 4, SECONDS_Y - 7, CANVAS_W - 8, BOX_H + 8);
+        Say(g, "SECONDS TO FREEZE", SMALL, 12, SECONDS_Y + 3, on ? Paper : Grey(Paper));
+        DrawArrowBox(g, MINUS_X, "minus", "<");
+        using (var b = new SolidBrush(Color.FromArgb(200, Ink))) g.FillRectangle(b, NUMBER_X, SECONDS_Y - 3, NUMBER_W, BOX_H);
+        Say(g, seconds.ToString(), BIG, NUMBER_X + NUMBER_W / 2, SECONDS_Y - 2, on ? Paper : Grey(Paper), true);
+        DrawArrowBox(g, PLUS_X, "plus", ">");
     }
 
     void DrawArrowBox(Graphics g, int x, string id, string arrow) {
         Color c = !on ? Grey(IceDeep) : hover == id ? Lighter(IceDeep, 0.25f) : IceDeep;
-        int y = SECONDS_Y - 1 + (pressed == id ? 1 : 0);
-        using (var b = new SolidBrush(c)) g.FillRectangle(b, x, y, 16, 15);
-        using (var p = new Pen(Ink)) g.DrawRectangle(p, x, y, 15, 14);
-        Say(g, arrow, BIG, x + 8, y - 1, Paper, true);
+        int y = SECONDS_Y - 3 + (pressed == id ? 1 : 0);
+        using (var b = new SolidBrush(c)) g.FillRectangle(b, x, y, ARROW_W, BOX_H);
+        using (var p = new Pen(Ink)) g.DrawRectangle(p, x, y, ARROW_W - 1, BOX_H - 1);
+        Say(g, arrow, BIG, x + ARROW_W / 2, y + 1, Paper, true);
     }
 
     void DrawRow(Graphics g, Row r) {
@@ -307,8 +309,8 @@ class FreezeUi : Form {
         Say(g, inside, counting ? BIG : SMALL, FLAKE_X, cy - (counting ? 8 : 4) + (pressed == flakeId ? 1 : 0), Paper, true);
         DrawFlame(g, FLAME_X, cy + (pressed == flameId ? 1 : 0), hover == flameId);
         int down = pressed == flameId ? 1 : 0;   // two lines, UN- over FREEZE: fits the flame's shape (Tefa, 2026-10-13)
-        Say(g, "UN-", SMALL, FLAME_X, cy + 3 + down, Paper, true);
-        Say(g, "FREEZE", SMALL, FLAME_X, cy + 12 + down, Paper, true);
+        Say(g, "UN-", SMALL, FLAME_X, cy + 1 + down, Paper, true);
+        Say(g, "FREEZE", SMALL, FLAME_X, cy + 10 + down, Paper, true);
     }
 
     void DrawSnowflake(Graphics g, int cx, int cy, bool hot) {
@@ -341,13 +343,13 @@ class FreezeUi : Form {
         Color inC = !on ? Grey(FlameIn) : hot ? Lighter(FlameIn, 0.2f) : FlameIn;
         Color edge = !on ? Grey(FlameEdge) : FlameEdge;
         float flick = on ? (float)Math.Sin((DateTime.Now - started).TotalMilliseconds / 180.0) : 0;
-        using (var outer = FlamePath(cx, cy + 2, 23, 26, flick))
-        using (var inner = FlamePath(cx, cy + 8, 14, 17, -flick)) {
+        using (var outer = FlamePath(cx, cy + FLAME_DROP, 23, 26, flick))
+        using (var inner = FlamePath(cx, cy + FLAME_DROP + 6, 14, 17, -flick)) {
             using (var p = new Pen(edge, 3)) g.DrawPath(p, outer);
             using (var b = new SolidBrush(outC)) g.FillPath(b, outer);
             using (var b = new SolidBrush(inC)) g.FillPath(b, inner);
         }
-        using (var b = new SolidBrush(Color.FromArgb(150, edge))) g.FillRectangle(b, cx - 20, cy + 2, 40, 19);   // a band for the two words
+        using (var b = new SolidBrush(Color.FromArgb(150, edge))) g.FillRectangle(b, cx - 20, cy, 40, 19);   // a band for the two words
     }
 
     // a flame: round at the bottom, three tongues at the top, the middle one tallest; `flick` sways the tips
@@ -368,15 +370,16 @@ class FreezeUi : Form {
         Panel(g, 4, STATUS_Y - 6, CANVAS_W - 8, 18);
         string text;
         if (!on) text = "Switched off.";
-        else if (!shared.GameConnected) text = "No OpenXR game connected yet.";
+        else if (!shared.GameConnected) text = "No game connected yet.";
         else {
             string hands = (shared.LeftSpaces > 0 ? "L" : "") + (shared.RightSpaces > 0 ? "R" : "");
             text = "Connected: " + shared.GameName + (hands.Length > 0 ? "  (" + hands + ")" : "");
         }
-        Say(g, text, 8, 10, STATUS_Y - 3, Paper);
+        Say(g, text, SMALL, 10, STATUS_Y - 1, Paper);
         Color pc = pinned ? Green : (hover == "pin" ? Lighter(IceDeep, 0.25f) : IceDeep);
-        using (var b = new SolidBrush(pc)) g.FillRectangle(b, CANVAS_W - 30, STATUS_Y - 4, 26, 13);
-        using (var p = new Pen(Ink)) g.DrawRectangle(p, CANVAS_W - 30, STATUS_Y - 4, 25, 12);
-        Say(g, "TOP", 8, CANVAS_W - 17, STATUS_Y - 3, Paper, true);
+        int px = CANVAS_W - 6 - PIN_W;
+        using (var b = new SolidBrush(pc)) g.FillRectangle(b, px, STATUS_Y - 4, PIN_W, 15);
+        using (var p = new Pen(Ink)) g.DrawRectangle(p, px, STATUS_Y - 4, PIN_W - 1, 14);
+        Say(g, "ALWAYS ON TOP", SMALL, px + PIN_W / 2, STATUS_Y - 1, Paper, true);
     }
 }
