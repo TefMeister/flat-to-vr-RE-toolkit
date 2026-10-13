@@ -1,5 +1,8 @@
 # Hand Freeze — hold both VR controllers still, in any OpenXR game
 
+> **This copy is frozen as of 2026-10-13.** Hand Freeze is moving to its own repo, which opens once it has
+> been tested in real games. Until then this folder is a snapshot of the 2026-10-13 build.
+
 <img src="app/screenshot_off.png" width="300"> <img src="app/screenshot_on.png" width="300">
 
 A pixel-art desktop app: a round switch (red OFF, fading to green ON), a seconds picker, and three rows,
