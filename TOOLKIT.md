@@ -272,3 +272,10 @@ showing one colour in both panes means the eyes are not actually separate. Don't
 into a single clear colour.
 
 Idea credit: webhead2oo9's `probe/xr_probe.cpp` — see `CREDITS.md`.
+
+### `hand-freeze/` — hold both VR controllers still, in any OpenXR game
+A desktop app (ON/OFF switch, seconds box, Freeze and Unfreeze buttons) plus an OpenXR API layer.
+After the countdown both controllers stay where they were, fixed in the room, while the game runs
+and the headset tracks: put them down and tune hand poses with the mouse. Proven end to end on the
+OpenXR Simulator (`test/freeze_test.py`), not yet in a real game. OpenXR games only, 64-bit only.
+Details, build and limits: `hand-freeze/README.md`.
