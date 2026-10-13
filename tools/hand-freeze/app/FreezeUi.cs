@@ -3,9 +3,10 @@
 //
 // Top: the title and a ROUND switch, red when OFF, fading smoothly to green when ON. Behind everything a looping
 // background: summer (summer.gif) while OFF, a frozen winter (winter.gif) while ON. Then the seconds picker, then three
-// rows, LEFT, RIGHT and BOTH, each with a snowflake-shaped FREEZE button and a flame-shaped UNFREEZE button. During a
-// countdown the snowflake shows the seconds left; a frozen row's label turns icy. The font is Marcellus (an Optima-like
-// face, SIL OFL), embedded in the exe with the two backgrounds.
+// rows, LEFT HAND, RIGHT HAND and BOTH HANDS, each with a snowflake-shaped FREEZE button and a flame-shaped UN- / FREEZE
+// button. During a countdown the snowflake shows the seconds left; a frozen row's label turns icy. The font is Silkscreen
+// (a pixel font, SIL OFL), embedded in the exe with the two backgrounds. It is drawn only at its own pixel sizes, 8 and
+// 16, so every letter stays sharp and apart (Marcellus ran letters together at small sizes: Tefa, 2026-10-13).
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -23,7 +24,7 @@ class FreezeUi : Form {
     const int CANVAS_W = 210, CANVAS_H = 300;   // must match make_backgrounds.py W, H
     const int SWITCH_X = 178, SWITCH_Y = 26, SWITCH_R = 19;
     const int SECONDS_Y = 76;
-    const int ROW_Y0 = 98, ROW_H = 62, LABEL_X = 10, FLAKE_X = 104, FLAME_X = 166, FLAKE_R = 29;
+    const int ROW_Y0 = 98, ROW_H = 62, LABEL_X = 10, FLAKE_X = 110, FLAME_X = 170, FLAKE_R = 29;
     const int STATUS_Y = 286;
     const int FRAME_MS = 140;               // background frame time (make_backgrounds.py FRAME_MS)
     const int FADE_MS = 500;                // red <-> green switch fade
@@ -55,11 +56,11 @@ class FreezeUi : Form {
     int lastBeep = -1;
     string hover = "", pressed = "";
 
-    struct Row { public string Label; public int Hands; public int Y; }
+    struct Row { public string Label, Noun; public int Hands; public int Y; }
     static readonly Row[] Rows = {
-        new Row { Label = "LEFT", Hands = Hands.LEFT, Y = ROW_Y0 },
-        new Row { Label = "RIGHT", Hands = Hands.RIGHT, Y = ROW_Y0 + ROW_H },
-        new Row { Label = "BOTH", Hands = Hands.BOTH, Y = ROW_Y0 + 2 * ROW_H },
+        new Row { Label = "LEFT", Noun = "HAND", Hands = Hands.LEFT, Y = ROW_Y0 },
+        new Row { Label = "RIGHT", Noun = "HAND", Hands = Hands.RIGHT, Y = ROW_Y0 + ROW_H },
+        new Row { Label = "BOTH", Noun = "HANDS", Hands = Hands.BOTH, Y = ROW_Y0 + 2 * ROW_H },
     };
 
     public FreezeUi() {
@@ -70,7 +71,7 @@ class FreezeUi : Form {
         using (var g = CreateGraphics()) scale = Math.Max(2, (int)Math.Round(2 * g.DpiX / 96f));
         ClientSize = new Size(CANVAS_W * scale, CANVAS_H * scale);
 
-        face = LoadFont("Marcellus-Regular.ttf");
+        face = LoadFont("Silkscreen-Regular.ttf");
         summer = LoadFrames("summer.gif");
         winter = LoadFrames("winter.gif");
         on = Layer.IsOn();
@@ -235,6 +236,8 @@ class FreezeUi : Form {
     static Color Lighter(Color c, float t) { return Mix(c, Color.White, t); }
     static Color Grey(Color c) { int v = (c.R + c.G + c.B) / 3; return Mix(Color.FromArgb(v, v, v), Color.FromArgb(120, 120, 125), 0.4f); }
 
+    const float SMALL = 8, BIG = 16;   // Silkscreen's own pixel sizes; anything in between blurs the letters
+
     Font F(float px) { return new Font(face, px, FontStyle.Regular, GraphicsUnit.Pixel); }
 
     // text with a one-pixel dark outline, so it reads on any background
@@ -256,10 +259,10 @@ class FreezeUi : Form {
 
     void DrawHeader(Graphics g) {
         Panel(g, 4, 4, CANVAS_W - 8, 62);
-        Say(g, "HAND", 16, 12, 9, Paper);
-        Say(g, "FREEZE", 16, 12, 26, Lighter(Ice, 0.3f));
-        Say(g, on ? "On: start or restart the game," : "Off: no game is touched.", 8, 12, 46, Paper);
-        Say(g, on ? "then freeze any time." : "Switch on before the game starts.", 8, 12, 55, Paper);
+        Say(g, "HAND", BIG, 12, 9, Paper);
+        Say(g, "FREEZE", BIG, 12, 26, Lighter(Ice, 0.3f));
+        Say(g, on ? "On: start or restart the game," : "Off: no game is touched.", SMALL, 12, 47, Paper);
+        Say(g, on ? "then freeze any time." : "Switch on before the game starts.", SMALL, 12, 56, Paper);
         // the round switch
         Color c = Mix(Red, Green, fade);
         bool hot = hover == "switch", down = pressed == "switch";
@@ -268,15 +271,15 @@ class FreezeUi : Form {
         using (var b = new SolidBrush(Mix(c, Ink, 0.35f))) g.FillEllipse(b, cx - r, cy - r + 2, 2 * r, 2 * r);   // rim
         using (var b = new SolidBrush(hot ? Lighter(c, 0.15f) : c)) g.FillEllipse(b, cx - r, cy - r, 2 * r, 2 * r - 2);
         using (var b = new SolidBrush(Lighter(c, 0.45f))) g.FillEllipse(b, cx - r + 5, cy - r + 3, r - 2, r / 2);     // shine
-        Say(g, fade >= 0.5f ? "ON" : "OFF", 11, cx, cy - 7, Paper, true);
+        Say(g, fade >= 0.5f ? "ON" : "OFF", BIG, cx, cy - 8, Paper, true);
     }
 
     void DrawSeconds(Graphics g) {
         Panel(g, 4, SECONDS_Y - 4, CANVAS_W - 8, 22);
-        Say(g, "SECONDS TO FREEZE", 9, 12, SECONDS_Y, on ? Paper : Grey(Paper));
+        Say(g, "SECONDS TO FREEZE", SMALL, 12, SECONDS_Y + 2, on ? Paper : Grey(Paper));
         DrawArrowBox(g, 118, "minus", "<");
         using (var b = new SolidBrush(Color.FromArgb(200, Ink))) g.FillRectangle(b, 136, SECONDS_Y - 1, 38, 15);
-        Say(g, seconds.ToString(), 11, 155, SECONDS_Y - 1, on ? Paper : Grey(Paper), true);
+        Say(g, seconds.ToString(), BIG, 155, SECONDS_Y - 2, on ? Paper : Grey(Paper), true);
         DrawArrowBox(g, 176, "plus", ">");
     }
 
@@ -285,7 +288,7 @@ class FreezeUi : Form {
         int y = SECONDS_Y - 1 + (pressed == id ? 1 : 0);
         using (var b = new SolidBrush(c)) g.FillRectangle(b, x, y, 16, 15);
         using (var p = new Pen(Ink)) g.DrawRectangle(p, x, y, 15, 14);
-        Say(g, arrow, 11, x + 8, y, Paper, true);
+        Say(g, arrow, BIG, x + 8, y - 1, Paper, true);
     }
 
     void DrawRow(Graphics g, Row r) {
@@ -294,14 +297,18 @@ class FreezeUi : Form {
         bool counting = countdownHands == r.Hands;
         Panel(g, 4, r.Y, CANVAS_W - 8, ROW_H - 4);
         if (frozen) using (var b = new SolidBrush(Color.FromArgb(90, Ice))) g.FillRectangle(b, 5, r.Y + 1, CANVAS_W - 10, ROW_H - 6);
-        Say(g, r.Label, 13, LABEL_X, cy - 12, frozen ? Ice : (on ? Paper : Grey(Paper)));
-        Say(g, frozen ? "FROZEN" : counting ? "HOLD STILL" : "", 8, LABEL_X, cy + 4, frozen ? Ice : FlameIn);
+        Color word = frozen ? Ice : (on ? Paper : Grey(Paper));
+        Say(g, r.Label, BIG, LABEL_X, cy - 24, word);   // two lines: LEFT / HAND, so the words stay big and clear
+        Say(g, r.Noun, BIG, LABEL_X, cy - 9, word);
+        Say(g, frozen ? "FROZEN" : counting ? "HOLD STILL" : "", SMALL, LABEL_X, cy + 10, frozen ? Ice : FlameIn);
         string flakeId = "freeze" + r.Hands, flameId = "unfreeze" + r.Hands;
         DrawSnowflake(g, FLAKE_X, cy + (pressed == flakeId ? 1 : 0), hover == flakeId);
         string inside = counting ? Math.Max(1, (int)Math.Ceiling((countdownEnd - DateTime.Now).TotalSeconds)).ToString() : "FREEZE";
-        Say(g, inside, counting ? 15 : 8, FLAKE_X, cy - (counting ? 9 : 4) + (pressed == flakeId ? 1 : 0), Paper, true);
+        Say(g, inside, counting ? BIG : SMALL, FLAKE_X, cy - (counting ? 8 : 4) + (pressed == flakeId ? 1 : 0), Paper, true);
         DrawFlame(g, FLAME_X, cy + (pressed == flameId ? 1 : 0), hover == flameId);
-        Say(g, "UNFREEZE", 7, FLAME_X, cy + 8 + (pressed == flameId ? 1 : 0), Paper, true);
+        int down = pressed == flameId ? 1 : 0;   // two lines, UN- over FREEZE: fits the flame's shape (Tefa, 2026-10-13)
+        Say(g, "UN-", SMALL, FLAME_X, cy + 3 + down, Paper, true);
+        Say(g, "FREEZE", SMALL, FLAME_X, cy + 12 + down, Paper, true);
     }
 
     void DrawSnowflake(Graphics g, int cx, int cy, bool hot) {
@@ -323,10 +330,10 @@ class FreezeUi : Form {
                     }
                 }
             }
-            int r = pass == 0 ? 18 : 16;
+            int r = pass == 0 ? 20 : 18;   // wide enough for the word FREEZE
             using (var b = new SolidBrush(pass == 0 ? Ink : deep)) g.FillEllipse(b, cx - r, cy - r, 2 * r, 2 * r);
         }
-        using (var b = new SolidBrush(Lighter(deep, 0.25f))) g.FillEllipse(b, cx - 13, cy - 14, 22, 10);   // a little shine
+        using (var b = new SolidBrush(Lighter(deep, 0.25f))) g.FillEllipse(b, cx - 14, cy - 16, 24, 10);   // a little shine
     }
 
     void DrawFlame(Graphics g, int cx, int cy, bool hot) {
@@ -340,7 +347,7 @@ class FreezeUi : Form {
             using (var b = new SolidBrush(outC)) g.FillPath(b, outer);
             using (var b = new SolidBrush(inC)) g.FillPath(b, inner);
         }
-        using (var b = new SolidBrush(Color.FromArgb(150, edge))) g.FillRectangle(b, cx - 22, cy + 6, 44, 11);   // a band for the word
+        using (var b = new SolidBrush(Color.FromArgb(150, edge))) g.FillRectangle(b, cx - 20, cy + 2, 40, 19);   // a band for the two words
     }
 
     // a flame: round at the bottom, three tongues at the top, the middle one tallest; `flick` sways the tips

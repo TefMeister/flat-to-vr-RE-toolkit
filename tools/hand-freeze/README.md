@@ -3,7 +3,7 @@
 <img src="app/screenshot_off.png" width="300"> <img src="app/screenshot_on.png" width="300">
 
 A pixel-art desktop app: a round switch (red OFF, fading to green ON), a seconds picker, and three rows,
-**LEFT**, **RIGHT** and **BOTH**, each with a snowflake **FREEZE** button and a flame **UNFREEZE** button.
+**LEFT HAND**, **RIGHT HAND** and **BOTH HANDS**, each with a snowflake **FREEZE** button and a flame **UN-FREEZE** button.
 Press FREEZE, hold the controllers where you want the in-game hands, and when the countdown runs out (it
 shows in the snowflake, with a beep each second and a long beep at the end) those hands stay exactly
 there, fixed in the room, while the game keeps running and the headset keeps tracking. Put the
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1  (to %LOCALAPPDATA%\Program
   Covers `xrLocateSpace`, `xrLocateSpaces` and `xrLocateSpacesKHR`.
 - `app/HandFreeze.cs` starts the app and holds the switch logic; `app/FreezeUi.cs` draws the window by
   hand onto a 210 x 300 canvas and scales it up with hard pixel edges. The backgrounds come from
-  `app/make_backgrounds.py` (two looping GIFs); the font is Marcellus, an Optima-like face. All three are
+  `app/make_backgrounds.py` (two looping GIFs); the font is Silkscreen, a pixel font drawn only at its own sizes so letters never run together. All three are
   embedded in the exe. **ON** writes the layer's manifest next to the DLL and
   registers it under `HKCU\Software\Khronos\OpenXR\1\ApiLayers\Implicit` (this Windows user only, no
   admin); **OFF** removes that entry. Freeze/unfreeze go through a 180-byte shared-memory block
@@ -83,8 +83,8 @@ headset or a real game.**
 
 ## Credit
 
-The font is [Marcellus](https://fonts.google.com/specimen/Marcellus) by Brian J. Bonislawsky
-(Astigmatic), SIL Open Font License 1.1 (`app/Marcellus-OFL.txt`).
+The font is [Silkscreen](https://fonts.google.com/specimen/Silkscreen) by Jason Kottke, SIL Open Font
+License 1.1 (`app/Silkscreen-OFL.txt`).
 OpenXR headers in `third_party/openxr/` are from the Khronos Group's
 [OpenXR-SDK](https://github.com/KhronosGroup/OpenXR-SDK) (release-1.1.43, Apache-2.0). The test uses
 [pyopenxr](https://github.com/cmbruns/pyopenxr) and the OpenXR Simulator by fholger, extended by
