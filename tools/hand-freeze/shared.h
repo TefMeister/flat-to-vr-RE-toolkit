@@ -8,7 +8,7 @@
 #define HAND_FREEZE_MAPPING_NAME L"Local\\FlatToVR_HandFreeze_v1"
 #define HAND_FREEZE_MAGIC 0x5A465248u   // "HRFZ"
 #define HAND_FREEZE_VERSION 1u
-#define HAND_FREEZE_SIZE 168     // bytes; the app maps exactly this much
+#define HAND_FREEZE_SIZE 168     // bytes; the app maps exactly this much (HandFreeze.cs SIZE)
 
 #pragma pack(push, 4)
 struct HandFreezeShared {
