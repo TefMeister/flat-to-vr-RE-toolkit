@@ -4,7 +4,7 @@
 // Tefa, 2026-10-13: "a small program with an icon on the desktop, where i can just switch this on and off, a universal
 // one for OpenXR, with a choice of seconds till the freeze and a button to unfreeze controllers". Then, the same day:
 // summer background when off, winter when on, a round red/green switch, a snowflake FREEZE and a flame UNFREEZE button,
-// rows for LEFT, RIGHT and BOTH, an Optima-like font, all pixelated.
+// rows for LEFT, RIGHT and BOTH, a pixel font, all pixelated.
 //
 // ON/OFF registers the OpenXR layer (hand_freeze_layer.dll, next to this exe) for every OpenXR game of this Windows user
 // (HKCU, no admin). A game picks it up when it starts, so the switch has to be on before the game starts; the window can
