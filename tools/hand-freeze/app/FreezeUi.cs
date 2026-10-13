@@ -23,7 +23,7 @@ class FreezeUi : Form {
     // ---- canvas and layout (canvas pixels; the window shows each one as SCALE x SCALE screen pixels) --------------
     const int CANVAS_W = 240, CANVAS_H = 356;   // must match make_backgrounds.py W, H
     const int HEADER_H = 74;
-    const int SWITCH_X = 205, SWITCH_Y = 32, SWITCH_R = 19;
+    const int SWITCH_X = 205, SWITCH_Y = 38, SWITCH_R = 19;
     const int SECONDS_Y = 90, BOX_H = 20, MINUS_X = 140, NUMBER_X = 160, NUMBER_W = 46, PLUS_X = 208, ARROW_W = 18;
     const int ROW_Y0 = 114, ROW_H = 72, LABEL_X = 10, FLAKE_X = 122, FLAME_X = 196, FLAKE_R = 28;
     const int FLAME_DROP = 5;                   // the flame sits a little low, so its tall tongues stay inside the row
@@ -263,8 +263,7 @@ class FreezeUi : Form {
         Panel(g, 4, 4, CANVAS_W - 8, HEADER_H);
         Say(g, "HAND", BIG, 12, 9, Paper);
         Say(g, "FREEZE", BIG, 12, 26, Lighter(Ice, 0.3f));
-        Say(g, on ? "On: start or restart the game," : "Off: no game is touched.", SMALL, 12, 58, Paper);
-        Say(g, on ? "then freeze any time." : "Switch on before the game starts.", SMALL, 12, 67, Paper);
+        if (!on) Say(g, "Switch on before the game starts.", SMALL, 12, 63, Paper);   // the one hint (Tefa, 2026-10-13)
         // the round switch
         Color c = Mix(Red, Green, fade);
         bool hot = hover == "switch", down = pressed == "switch";
@@ -273,7 +272,7 @@ class FreezeUi : Form {
         using (var b = new SolidBrush(Mix(c, Ink, 0.35f))) g.FillEllipse(b, cx - r, cy - r + 2, 2 * r, 2 * r);   // rim
         using (var b = new SolidBrush(hot ? Lighter(c, 0.15f) : c)) g.FillEllipse(b, cx - r, cy - r, 2 * r, 2 * r - 2);
         using (var b = new SolidBrush(Lighter(c, 0.45f))) g.FillEllipse(b, cx - r + 5, cy - r + 3, r - 2, r / 2);     // shine
-        Say(g, fade >= 0.5f ? "ON" : "OFF", BIG, cx, cy - 8, Paper, true);
+        Say(g, fade >= 0.5f ? "ON" : "OFF", BIG, cx, cy - 12, Paper, true);
     }
 
     void DrawSeconds(Graphics g) {
@@ -281,16 +280,16 @@ class FreezeUi : Form {
         Say(g, "SECONDS TO FREEZE", SMALL, 12, SECONDS_Y + 3, on ? Paper : Grey(Paper));
         DrawArrowBox(g, MINUS_X, "minus", "<");
         using (var b = new SolidBrush(Color.FromArgb(200, Ink))) g.FillRectangle(b, NUMBER_X, SECONDS_Y - 3, NUMBER_W, BOX_H);
-        Say(g, seconds.ToString(), BIG, NUMBER_X + NUMBER_W / 2, SECONDS_Y - 2, on ? Paper : Grey(Paper), true);
+        Say(g, seconds.ToString(), BIG, NUMBER_X + NUMBER_W / 2, SECONDS_Y - 6, on ? Paper : Grey(Paper), true);
         DrawArrowBox(g, PLUS_X, "plus", ">");
     }
 
     void DrawArrowBox(Graphics g, int x, string id, string arrow) {
         Color c = !on ? Grey(IceDeep) : hover == id ? Lighter(IceDeep, 0.25f) : IceDeep;
         int y = SECONDS_Y - 3 + (pressed == id ? 1 : 0);
-        using (var b = new SolidBrush(c)) g.FillRectangle(b, x, y, ARROW_W, BOX_H);
+        using (var b = new SolidBrush(c)) g.FillRectangle(b, x, y, ARROW_W - 1, BOX_H - 1);   // same size as the outline, so no colour leaks past it
         using (var p = new Pen(Ink)) g.DrawRectangle(p, x, y, ARROW_W - 1, BOX_H - 1);
-        Say(g, arrow, BIG, x + ARROW_W / 2, y + 1, Paper, true);
+        Say(g, arrow, BIG, x + ARROW_W / 2, y - 3, Paper, true);
     }
 
     void DrawRow(Graphics g, Row r) {
@@ -378,7 +377,7 @@ class FreezeUi : Form {
         Say(g, text, SMALL, 10, STATUS_Y - 1, Paper);
         Color pc = pinned ? Green : (hover == "pin" ? Lighter(IceDeep, 0.25f) : IceDeep);
         int px = CANVAS_W - 6 - PIN_W;
-        using (var b = new SolidBrush(pc)) g.FillRectangle(b, px, STATUS_Y - 4, PIN_W, 15);
+        using (var b = new SolidBrush(pc)) g.FillRectangle(b, px, STATUS_Y - 4, PIN_W - 1, 14);
         using (var p = new Pen(Ink)) g.DrawRectangle(p, px, STATUS_Y - 4, PIN_W - 1, 14);
         Say(g, "ALWAYS ON TOP", SMALL, px + PIN_W / 2, STATUS_Y - 1, Paper, true);
     }
