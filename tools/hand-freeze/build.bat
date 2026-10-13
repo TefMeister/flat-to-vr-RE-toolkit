@@ -16,7 +16,9 @@ cl /nologo /O2 /EHsc /std:c++17 /LD /MT /W4 /I"%HERE%third_party" "%HERE%layer\h
 if errorlevel 1 (echo LAYER BUILD FAILED & exit /b 1)
 
 "%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /optimize+ /win32icon:"%HERE%app\hand_freeze.ico" ^
-   /out:"%HERE%dist\HandFreeze.exe" "%HERE%app\HandFreeze.cs"
+   /resource:"%HERE%app\summer.gif",summer.gif /resource:"%HERE%app\winter.gif",winter.gif ^
+   /resource:"%HERE%app\Marcellus-Regular.ttf",Marcellus-Regular.ttf ^
+   /out:"%HERE%dist\HandFreeze.exe" "%HERE%app\HandFreeze.cs" "%HERE%app\FreezeUi.cs"
 if errorlevel 1 (echo APP BUILD FAILED & exit /b 1)
 copy /y "%HERE%app\hand_freeze.ico" "%HERE%dist\" >nul
 echo BUILD OK: %HERE%dist
