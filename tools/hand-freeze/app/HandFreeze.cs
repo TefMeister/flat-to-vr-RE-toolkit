@@ -33,6 +33,7 @@ class Shared : IDisposable {
     const string NAME = @"Local\FlatToVR_HandFreeze_v1";
     const uint MAGIC = 0x5A465248, VERSION = 1;
     const int SIZE = 168, FROZEN = 8, GENERATION = 12, HEARTBEAT = 16, CONTROLLERS = 28, GAME_NAME = 40;
+    const ulong CONNECTED_WITHIN_MS = 3000;   // a game counts as connected if the layer was heard from this recently
     readonly MemoryMappedFile file;
     readonly MemoryMappedViewAccessor view;
 
@@ -47,7 +48,7 @@ class Shared : IDisposable {
     public void Freeze() { view.Write(GENERATION, view.ReadInt32(GENERATION) + 1); view.Write(FROZEN, 1); }
     public void Unfreeze() { view.Write(FROZEN, 0); }
     public int Controllers { get { return view.ReadInt32(CONTROLLERS); } }
-    public bool GameConnected { get { ulong hb = view.ReadUInt64(HEARTBEAT); return hb != 0 && GetTickCount64() - hb < 3000; } }
+    public bool GameConnected { get { ulong hb = view.ReadUInt64(HEARTBEAT); return hb != 0 && GetTickCount64() - hb < CONNECTED_WITHIN_MS; } }
     public string GameName {
         get {
             var chars = new char[64];
@@ -94,6 +95,8 @@ class MainForm : Form {
     readonly Label big = new Label(), status = new Label(), hint = new Label();
     readonly CheckBox onTop = new CheckBox();
     readonly System.Windows.Forms.Timer tick = new System.Windows.Forms.Timer();
+    const int DEFAULT_SECONDS = 10, MAX_SECONDS = 60;                     // Tefa asked for 10 s; a minute is plenty
+    const int TICK_HZ = 880, TICK_MS = 70, FROZEN_HZ = 1320, FROZEN_MS = 350; // the countdown beeps and the final one
     DateTime countdownEnd = DateTime.MinValue;
     int lastBeep = -1;
     readonly string settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.txt");
@@ -125,7 +128,7 @@ class MainForm : Form {
         layout.Controls.Add(hint, 0, 1); layout.SetColumnSpan(hint, 2);
 
         var secLabel = new Label { Text = "Seconds before it freezes:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft };
-        seconds.Minimum = 0; seconds.Maximum = 60; seconds.Value = LoadSeconds(); seconds.Dock = DockStyle.Fill;
+        seconds.Minimum = 0; seconds.Maximum = MAX_SECONDS; seconds.Value = LoadSeconds(); seconds.Dock = DockStyle.Fill;
         seconds.BackColor = PanelC; seconds.ForeColor = Fore; seconds.TextAlign = HorizontalAlignment.Center;
         seconds.ValueChanged += (s, e) => SaveSeconds();
         layout.Controls.Add(secLabel, 0, 2); layout.Controls.Add(seconds, 1, 2);
@@ -186,10 +189,10 @@ class MainForm : Form {
             if (left <= 0) {
                 countdownEnd = DateTime.MinValue;
                 shared.Freeze();
-                Beep(1320, 350);
+                Beep(FROZEN_HZ, FROZEN_MS);
             } else {
                 int whole = (int)Math.Ceiling(left);
-                if (whole != lastBeep) { lastBeep = whole; Beep(880, 70); }
+                if (whole != lastBeep) { lastBeep = whole; Beep(TICK_HZ, TICK_MS); }
                 big.Text = "Hold still... freezing in " + whole;
                 big.ForeColor = Blue;
             }
@@ -207,8 +210,8 @@ class MainForm : Form {
     static void Beep(int hz, int ms) { ThreadPool.QueueUserWorkItem(_ => { try { Console.Beep(hz, ms); } catch { } }); }
 
     decimal LoadSeconds() {
-        try { decimal v; if (decimal.TryParse(File.ReadAllText(settingsFile).Trim(), out v) && v >= 0 && v <= 60) return v; } catch { }
-        return 10;
+        try { decimal v; if (decimal.TryParse(File.ReadAllText(settingsFile).Trim(), out v) && v >= 0 && v <= MAX_SECONDS) return v; } catch { }
+        return DEFAULT_SECONDS;
     }
     void SaveSeconds() { try { File.WriteAllText(settingsFile, seconds.Value.ToString()); } catch { } }
 }
