@@ -12,7 +12,9 @@ import random
 
 from PIL import Image, ImageDraw
 
-W, H = 210, 300          # must match the app's canvas (FreezeUi.cs CANVAS_W, CANVAS_H)
+W, H = 240, 356          # must match the app's canvas (FreezeUi.cs CANVAS_W, CANVAS_H)
+GROUND = H - 70          # where the sky ends; hills, pines and flowers sit relative to it
+SUN_X, SUN_Y = 136, 34   # top middle of the app's title box, between the title and the switch
 FRAMES, FRAME_MS = 16, 140
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -30,15 +32,15 @@ def hill(d, base, amp, period, phase, color):
 
 def summer():
     rnd = random.Random(7)
-    flowers = [(rnd.randrange(W), rnd.randrange(250, H - 4), rnd.choice([(250, 90, 120), (255, 220, 80), (255, 255, 255), (200, 120, 255)]), rnd.random() * 6.28) for _ in range(70)]
+    flowers = [(rnd.randrange(W), rnd.randrange(GROUND + 20, H - 4), rnd.choice([(250, 90, 120), (255, 220, 80), (255, 255, 255), (200, 120, 255)]), rnd.random() * 6.28) for _ in range(70)]
     frames = []
     for f in range(FRAMES):
         t = f / FRAMES
         im = Image.new("RGB", (W, H))
         d = ImageDraw.Draw(im)
-        gradient(d, (70, 150, 235), (190, 225, 250), 0, 230)
+        gradient(d, (70, 150, 235), (190, 225, 250), 0, GROUND)
         # sun with pulsing rays
-        cx, cy = 168, 40
+        cx, cy = SUN_X, SUN_Y
         for k in range(12):
             a = k * math.pi / 6 + t * math.pi / 6
             r1, r2 = 20, 27 + 3 * math.sin(t * 2 * math.pi * 2 + k)
@@ -51,9 +53,9 @@ def summer():
             for dx, dy, r in [(0, 0, 9), (10, -4, 11), (22, 0, 9), (12, 3, 8)]:
                 rr = r * size
                 d.ellipse([x + dx * size - rr, y + dy - rr * 0.7, x + dx * size + rr, y + dy + rr * 0.7], fill=(250, 252, 255))
-        hill(d, 205, 10, 30, 0.5, (120, 190, 90))
-        hill(d, 228, 8, 22, 2.0, (85, 165, 70))
-        hill(d, 252, 6, 18, 4.0, (60, 140, 55))
+        hill(d, GROUND - 25, 10, 30, 0.5, (120, 190, 90))
+        hill(d, GROUND - 2, 8, 22, 2.0, (85, 165, 70))
+        hill(d, GROUND + 22, 6, 18, 4.0, (60, 140, 55))
         for (x, y, c, ph) in flowers:   # sway one pixel left and right
             sx = x + round(math.sin(t * 2 * math.pi + ph))
             d.line([(x, y + 3), (sx, y)], fill=(40, 110, 40))
@@ -72,22 +74,24 @@ def winter():
         t = f / FRAMES
         im = Image.new("RGB", (W, H))
         d = ImageDraw.Draw(im)
-        gradient(d, (12, 22, 60), (70, 110, 170), 0, 230)
+        gradient(d, (12, 22, 60), (70, 110, 170), 0, GROUND)
         for (x, y, ph) in stars:
             if math.sin(t * 2 * math.pi + ph) > -0.3:
                 d.point((x, y), fill=(220, 230, 255))
-        d.ellipse([22, 26, 48, 52], fill=(235, 240, 255))
-        d.ellipse([30, 26, 54, 50], fill=(22, 37, 78))   # crescent: the sky colour at that height
-        hill(d, 205, 9, 28, 1.0, (190, 210, 235))
-        for (x, s) in [(30, 1.0), (62, 0.8), (150, 1.1), (185, 0.9)]:   # snowy pines
-            base = 212
+        mx, my = SUN_X, SUN_Y
+        d.ellipse([mx - 13, my - 13, mx + 13, my + 13], fill=(235, 240, 255))
+        night = tuple(int(a + (b - a) * my / (GROUND - 1)) for a, b in zip((12, 22, 60), (70, 110, 170)))   # crescent: the sky colour there
+        d.ellipse([mx - 5, my - 13, mx + 19, my + 11], fill=night)
+        hill(d, GROUND - 25, 9, 28, 1.0, (190, 210, 235))
+        for (x, s) in [(34, 1.0), (70, 0.8), (172, 1.1), (212, 0.9)]:   # snowy pines
+            base = GROUND - 18
             for i in range(3):
                 w, top = (16 - i * 4) * s, base - (12 + i * 10) * s
                 d.polygon([(x - w, base - i * 9 * s), (x + w, base - i * 9 * s), (x, top - 8 * s)], fill=(25, 70, 60))
                 d.polygon([(x - w * 0.5, top + 2), (x + w * 0.5, top + 2), (x, top - 8 * s)], fill=(235, 245, 255))
             d.rectangle([x - 2, base, x + 2, base + 5], fill=(70, 50, 40))
-        hill(d, 230, 7, 20, 3.0, (215, 230, 248))
-        hill(d, 255, 5, 16, 5.0, (240, 247, 255))
+        hill(d, GROUND, 7, 20, 3.0, (215, 230, 248))
+        hill(d, GROUND + 25, 5, 16, 5.0, (240, 247, 255))
         for (x, y, size, ph) in flakes:   # each flake falls exactly H*k pixels per loop, drifting sideways
             k = 1 if size == 1 else 2
             fy = (y + t * H * k) % H

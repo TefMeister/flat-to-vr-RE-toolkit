@@ -21,7 +21,7 @@ one hand while dragging sliders on the monitor was the only way before.
    game that was already running needs one restart. The window itself can be opened and closed any time.
 3. The bottom line says *Connected: <game>.exe (LR)* once the game asks for a controller pose; L and R
    show which hands it has told apart.
-4. Pick the seconds, press a row's snowflake, hold still. The flame lets that row's hands go. **TOP**
+4. Pick the seconds, press a row's snowflake, hold still. The flame lets that row's hands go. **ALWAYS ON TOP**
    keeps the window above the game.
 
 Switch it **OFF** when you do not need it. While it is on but nothing is frozen it only passes the
@@ -47,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1  (to %LOCALAPPDATA%\Program
   room as the head moves (not glued to the face). Velocities are zeroed so nothing reads a swing.
   Covers `xrLocateSpace`, `xrLocateSpaces` and `xrLocateSpacesKHR`.
 - `app/HandFreeze.cs` starts the app and holds the switch logic; `app/FreezeUi.cs` draws the window by
-  hand onto a 210 x 300 canvas and scales it up with hard pixel edges. The backgrounds come from
+  hand onto a 240 x 356 canvas and scales it up with hard pixel edges. The backgrounds come from
   `app/make_backgrounds.py` (two looping GIFs); the font is Silkscreen, a pixel font drawn only at its own sizes so letters never run together. All three are
   embedded in the exe. **ON** writes the layer's manifest next to the DLL and
   registers it under `HKCU\Software\Khronos\OpenXR\1\ApiLayers\Implicit` (this Windows user only, no
