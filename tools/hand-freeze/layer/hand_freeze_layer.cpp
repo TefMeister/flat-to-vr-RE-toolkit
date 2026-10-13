@@ -14,6 +14,9 @@
 // a game asking relative to the head (VIEW) sees the hand stay in the room as the head moves, not stuck to the face.
 // Velocities are zeroed. The switch is a small shared-memory block (shared.h) the app writes; the layer writes a
 // heartbeat into it so the app can say which game is connected.
+// v2 (2026-10-13): LEFT / RIGHT / BOTH. Each controller space is sorted into a hand once: by the subaction path it was
+// made with (/user/hand/left or /right), else by where its action is bound (xrEnumerateBoundSourcesForAction). A space
+// whose hand cannot be told is held only when both hands are frozen.
 #define XR_NO_PROTOTYPES
 #include <windows.h>
 #include <openxr/openxr.h>
@@ -36,12 +39,19 @@ PFN_xrDestroySession g_next_destroy_session = nullptr;
 PFN_xrLocateSpace g_next_locate_space = nullptr;
 PFN_xrLocateSpaces g_next_locate_spaces = nullptr;
 PFN_xrLocateSpacesKHR g_next_locate_spaces_khr = nullptr;
+PFN_xrPathToString g_next_path_to_string = nullptr;
+PFN_xrEnumerateBoundSourcesForAction g_next_bound_sources = nullptr;
+XrInstance g_instance = XR_NULL_HANDLE;
 
-struct Controller { XrSession session; bool kept; XrPosef pose_in_room; };
+enum Hand : int { HAND_NOT_LOOKED = 0, HAND_LEFT = 1, HAND_RIGHT = 2, HAND_UNKNOWN = 3 };
+struct Controller {
+    XrSession session; XrAction action; XrPath subaction;
+    int hand = HAND_NOT_LOOKED;
+    bool kept = false; LONG kept_generation = 0; XrPosef pose_in_room{};
+};
 std::recursive_mutex g_mtx;
 std::map<XrSpace, Controller> g_controllers;   // every space made by xrCreateActionSpace
 std::map<XrSession, XrSpace> g_room;           // our own LOCAL space per session: the frame the kept poses live in
-LONG g_kept_generation = -1;
 
 // ---- pose maths (unit quaternions, metres) -----------------------------------------------------------------------
 XrQuaternionf qmul(XrQuaternionf a, XrQuaternionf b) {
@@ -82,7 +92,11 @@ void heartbeat() {
     s->layer_pid = GetCurrentProcessId();
     {
         std::lock_guard _{g_mtx};
+        LONG left = 0, right = 0;
+        for (const auto& c : g_controllers) { left += c.second.hand == HAND_LEFT; right += c.second.hand == HAND_RIGHT; }
         s->controller_spaces = static_cast<LONG>(g_controllers.size());
+        s->left_spaces = left;
+        s->right_spaces = right;
     }
     if (s->game_name[0] == 0 || s->game_name_pid != s->layer_pid) {
         wchar_t path[MAX_PATH]{};
@@ -94,32 +108,64 @@ void heartbeat() {
     }
 }
 
-// true while frozen; a new freeze (generation changed) forgets the poses kept by the last one
-bool frozen_now() {
+// which hands are held right now (HAND_FREEZE_LEFT / _RIGHT bits); 0 = none
+LONG frozen_now() {
     auto* s = shared();
-    if (s == nullptr || s->frozen == 0) return false;
-    std::lock_guard _{g_mtx};
-    if (s->generation != g_kept_generation) {
-        for (auto& c : g_controllers) c.second.kept = false;
-        g_kept_generation = s->generation;
+    return s == nullptr ? 0 : s->frozen;
+}
+
+int hand_of_path(XrPath path) {
+    if (path == XR_NULL_PATH || g_next_path_to_string == nullptr) return HAND_UNKNOWN;
+    char text[XR_MAX_PATH_LENGTH]{};
+    uint32_t n = 0;
+    if (XR_FAILED(g_next_path_to_string(g_instance, path, XR_MAX_PATH_LENGTH, &n, text))) return HAND_UNKNOWN;
+    if (std::strncmp(text, "/user/hand/left", 15) == 0) return HAND_LEFT;
+    if (std::strncmp(text, "/user/hand/right", 16) == 0) return HAND_RIGHT;
+    return HAND_UNKNOWN;
+}
+
+// sort a controller space into a hand, once it can be told (bindings exist only after the game syncs its actions)
+int hand_of(Controller& c) {
+    if (c.hand == HAND_LEFT || c.hand == HAND_RIGHT) return c.hand;
+    int hand = hand_of_path(c.subaction);
+    if (hand == HAND_UNKNOWN && g_next_bound_sources != nullptr) {
+        XrBoundSourcesForActionEnumerateInfo info{XR_TYPE_BOUND_SOURCES_FOR_ACTION_ENUMERATE_INFO};
+        info.action = c.action;
+        XrPath sources[16]{};
+        uint32_t n = 0;
+        if (XR_SUCCEEDED(g_next_bound_sources(c.session, &info, 16, &n, sources)) && n > 0) {
+            int seen = hand_of_path(sources[0]);
+            for (uint32_t i = 1; i < n && i < 16; ++i) if (hand_of_path(sources[i]) != seen) seen = HAND_UNKNOWN;
+            hand = seen;
+        }
     }
-    return true;
+    c.hand = hand;
+    return hand;
 }
 
 // The held answer for "controller `space` relative to `base`" at `time`. False = answer live (not a controller, the
 // base is itself a controller, or no usable pose yet).
-bool held_pose(XrSpace space, XrSpace base, XrTime time, XrPosef& out) {
+bool held_pose(XrSpace space, XrSpace base, XrTime time, LONG mask, XrPosef& out) {
     std::lock_guard _{g_mtx};
     auto c = g_controllers.find(space);
     if (c == g_controllers.end() || g_controllers.count(base) != 0) return false;
     auto r = g_room.find(c->second.session);
     if (r == g_room.end()) return false;
+    const int hand = hand_of(c->second);
+    const LONG both = HAND_FREEZE_LEFT | HAND_FREEZE_RIGHT;
+    const bool wanted = hand == HAND_LEFT ? (mask & HAND_FREEZE_LEFT) != 0 : hand == HAND_RIGHT ? (mask & HAND_FREEZE_RIGHT) != 0 : (mask & both) == both;
+    if (!wanted) return false;
+    auto* s = shared();
+    const LONG generation = hand == HAND_LEFT ? s->generation_left : hand == HAND_RIGHT ? s->generation_right
+                                              : s->generation_left * 65536 + s->generation_right;
+    if (c->second.kept && c->second.kept_generation != generation) c->second.kept = false;   // a new freeze: fresh pose
     if (!c->second.kept) {
         XrSpaceLocation now{XR_TYPE_SPACE_LOCATION};
         if (XR_FAILED(g_next_locate_space(space, r->second, time, &now)) || (now.locationFlags & kValid) != kValid) return false;
         c->second.pose_in_room = now.pose;
         c->second.kept = true;
-        if (auto* s = shared()) InterlockedIncrement(&s->poses_held);
+        c->second.kept_generation = generation;
+        InterlockedIncrement(&s->poses_held);
     }
     XrSpaceLocation b{XR_TYPE_SPACE_LOCATION};   // where the base is in the room right now (the head keeps moving)
     if (XR_FAILED(g_next_locate_space(base, r->second, time, &b)) || (b.locationFlags & kValid) != kValid) return false;
@@ -132,7 +178,11 @@ XRAPI_ATTR XrResult XRAPI_CALL hf_xrCreateActionSpace(XrSession session, const X
     const XrResult r = g_next_create_action_space(session, info, space);
     if (XR_FAILED(r) || space == nullptr) return r;
     std::lock_guard _{g_mtx};
-    g_controllers[*space] = Controller{session, false, {}};
+    Controller c{};
+    c.session = session;
+    c.action = info != nullptr ? info->action : XR_NULL_HANDLE;
+    c.subaction = info != nullptr ? info->subactionPath : XR_NULL_PATH;
+    g_controllers[*space] = c;
     if (g_room.count(session) == 0 && g_next_create_reference_space != nullptr) {
         XrReferenceSpaceCreateInfo ci{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
         ci.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
@@ -168,7 +218,8 @@ XRAPI_ATTR XrResult XRAPI_CALL hf_xrLocateSpace(XrSpace space, XrSpace base, XrT
     const XrResult r = g_next_locate_space(space, base, time, location);
     heartbeat();
     XrPosef held{};
-    if (XR_FAILED(r) || location == nullptr || !frozen_now() || !held_pose(space, base, time, held)) return r;
+    const LONG mask = XR_SUCCEEDED(r) ? frozen_now() : 0;
+    if (location == nullptr || mask == 0 || !held_pose(space, base, time, mask, held)) return r;
     location->pose = held;
     location->locationFlags |= kValid | XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT;
     for (auto* n = static_cast<XrBaseOutStructure*>(location->next); n != nullptr; n = n->next) {
@@ -180,7 +231,8 @@ XRAPI_ATTR XrResult XRAPI_CALL hf_xrLocateSpace(XrSpace space, XrSpace base, XrT
 XrResult locate_spaces(PFN_xrLocateSpaces next, XrSession session, const XrSpacesLocateInfo* info, XrSpaceLocations* out) {
     const XrResult r = next(session, info, out);
     heartbeat();
-    if (XR_FAILED(r) || info == nullptr || out == nullptr || out->locations == nullptr || !frozen_now()) return r;
+    const LONG mask = XR_SUCCEEDED(r) ? frozen_now() : 0;
+    if (info == nullptr || out == nullptr || out->locations == nullptr || mask == 0) return r;
     XrSpaceVelocities* vel = nullptr;
     for (auto* n = static_cast<XrBaseOutStructure*>(out->next); n != nullptr; n = n->next) {
         if (n->type == XR_TYPE_SPACE_VELOCITIES) vel = reinterpret_cast<XrSpaceVelocities*>(n);
@@ -188,7 +240,7 @@ XrResult locate_spaces(PFN_xrLocateSpaces next, XrSession session, const XrSpace
     const uint32_t count = info->spaceCount < out->locationCount ? info->spaceCount : out->locationCount;
     for (uint32_t i = 0; i < count; ++i) {
         XrPosef held{};
-        if (!held_pose(info->spaces[i], info->baseSpace, info->time, held)) continue;
+        if (!held_pose(info->spaces[i], info->baseSpace, info->time, mask, held)) continue;
         out->locations[i].pose = held;
         out->locations[i].locationFlags |= kValid | XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT;
         if (vel != nullptr && vel->velocities != nullptr && i < vel->velocityCount) {
@@ -231,6 +283,9 @@ void fetch_next(XrInstance instance) {
     get("xrCreateActionSpace", g_next_create_action_space);
     get("xrDestroySpace", g_next_destroy_space);
     get("xrDestroySession", g_next_destroy_session);
+    get("xrPathToString", g_next_path_to_string);
+    get("xrEnumerateBoundSourcesForAction", g_next_bound_sources);
+    g_instance = instance;
 }
 
 XRAPI_ATTR XrResult XRAPI_CALL hf_xrCreateApiLayerInstance(const XrInstanceCreateInfo* info, const XrApiLayerCreateInfo* layer_info, XrInstance* instance) {

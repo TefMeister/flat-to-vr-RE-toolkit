@@ -26,17 +26,23 @@ LAYER_NAME = "XR_APILAYER_FLATTOVR_hand_freeze"
 SIM_RUNTIME = r"D:\claude video game stuff\tools\OpenXR-Simulator\openxr_simulator.json"
 
 
-def shared_block():
-    m = mmap.mmap(-1, 168, tagname="Local\\FlatToVR_HandFreeze_v1")
+LEFT, RIGHT, BOTH = 1, 2, 3   # shared.h HAND_FREEZE_LEFT / _RIGHT bits
+
+
+def shared_block():   # shared.h v2: 180 bytes
+    m = mmap.mmap(-1, 180, tagname="Local\\FlatToVR_HandFreeze_v2")
     if struct.unpack_from("<I", m, 0)[0] != 0x5A465248:
-        struct.pack_into("<II", m, 0, 0x5A465248, 1)
+        struct.pack_into("<II", m, 0, 0x5A465248, 2)
     return m
 
 
-def set_frozen(m, on):
-    if on:
-        struct.pack_into("<i", m, 12, struct.unpack_from("<i", m, 12)[0] + 1)
-    struct.pack_into("<i", m, 8, 1 if on else 0)
+def set_frozen(m, hands):
+    """hold exactly these hands; a newly held hand gets a fresh pose (its generation goes up)"""
+    before = struct.unpack_from("<i", m, 8)[0]
+    for bit, off in ((LEFT, 12), (RIGHT, 168)):
+        if hands & bit and not before & bit:
+            struct.pack_into("<i", m, off, struct.unpack_from("<i", m, off)[0] + 1)
+    struct.pack_into("<i", m, 8, hands)
 
 
 def main():
@@ -71,7 +77,7 @@ def main():
         return 1
 
     shm = shared_block()
-    set_frozen(shm, False)
+    set_frozen(shm, 0)
 
     instance = xr.create_instance(xr.InstanceCreateInfo(enabled_extension_names=[xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]))
     system_id = xr.get_system(instance, xr.SystemGetInfo(form_factor=xr.FormFactor.HEAD_MOUNTED_DISPLAY))
@@ -109,8 +115,8 @@ def main():
         images.append(xr.enumerate_swapchain_images(sc, xr.SwapchainImageOpenGLKHR))
 
     mgr = SessionStateManager(instance, session, cfg)
-    phases = [("free", args.free), ("frozen", args.frozen), ("free again", args.free)]
-    samples = {name: [] for name, _ in phases}
+    phases = [("free", args.free, 0), ("left only", args.frozen, LEFT), ("both", args.frozen, BOTH), ("free again", args.free, 0)]
+    samples = {name: [] for name, _, _ in phases}
     phase_i, phase_start, started = 0, None, False
     print("READY: start moving the simulator's head now (pose sweep)", flush=True)
     try:
@@ -128,12 +134,12 @@ def main():
             now = time.perf_counter()
             if phase_start is None:
                 phase_start = now
-            name, length = phases[phase_i]
+            name, length, _ = phases[phase_i]
             if now - phase_start >= length:
                 phase_i += 1
                 phase_start = now
                 if phase_i < len(phases):
-                    set_frozen(shm, phases[phase_i][0] == "frozen")
+                    set_frozen(shm, phases[phase_i][2])
                     print("phase:", phases[phase_i][0], flush=True)
                 xr.end_frame(session, xr.FrameEndInfo(display_time=fs.predicted_display_time, environment_blend_mode=xr.EnvironmentBlendMode.OPAQUE, layers=[]))
                 continue
@@ -148,9 +154,10 @@ def main():
             xr.end_frame(session, xr.FrameEndInfo(display_time=fs.predicted_display_time, environment_blend_mode=xr.EnvironmentBlendMode.OPAQUE, layers=[]))
     except SessionStateManager.ExitRenderLoop:
         print("runtime ended the session early")
-    set_frozen(shm, False)
+    set_frozen(shm, 0)
     held = struct.unpack_from("<i", shm, 32)[0]
     spaces = struct.unpack_from("<i", shm, 28)[0]
+    left_spaces, right_spaces = struct.unpack_from("<ii", shm, 172)
 
     def spread(rows, k):   # largest change of reading k (0 L-stage, 1 L-view, 2 R-stage, 3 R-view) within a phase
         if not rows:
@@ -159,22 +166,18 @@ def main():
         return max(max(abs(a - b) for a, b in zip(r[k][1:], first)) for r in rows)
 
     labels = ["left in room", "left vs head", "right in room", "right vs head"]
-    print("\ncontroller spaces the layer saw: %d, poses it held: %d" % (spaces, held))
-    print("first reading flags/pose:", samples["free"][0] if samples["free"] else None)
-    for name, _ in phases:
+    print("\ncontroller spaces the layer saw: %d (left %d, right %d), poses it held: %d" % (spaces, left_spaces, right_spaces, held))
+    for name, _, _ in phases:
         print("%-11s %4d frames  " % (name, len(samples[name])) + "  ".join("%s %.4f" % (labels[k], spread(samples[name], k)) for k in range(4)))
-    # The simulator's controllers sit at a fixed offset from the head's POSITION (not its turn), so moving the head
-    # (MCP set_head_pose x=...) moves them in the room. Free: they must move in the room. Frozen: they must not move in
-    # the room (to float precision, the layer does a little maths) while their pose relative to the head does change
-    # (the head moved, the hands stayed: not glued to the face).
-    free_room = max(spread(samples[p], k) for p in ("free", "free again") for k in (0, 2))
-    frozen_room = max(spread(samples["frozen"], k) for k in (0, 2))
-    frozen_head = max(spread(samples["frozen"], k) for k in (1, 3))
-    print("free: hands moved %.4f m in the room; frozen: %.6f m in the room, %.4f relative to the head" % (free_room, frozen_room, frozen_head))
-    if free_room < 1e-3 or frozen_head < 1e-3:
+    # The simulator's controllers sit at a fixed offset from the head's POSITION, so moving the head (MCP set_head_pose
+    # x=...) moves them in the room. A held hand must not move in the room at all (to float precision: the layer does a
+    # little maths); a free hand must. Every phase needs a head move, or it shows nothing.
+    still = lambda name, k: spread(samples[name], k) < 1e-4
+    moved = lambda name, k: spread(samples[name], k) > 1e-3
+    if not all(moved(n, k) for n in ("free", "free again") for k in (0, 2)) or not moved("left only", 2) or not moved("both", 1):
         print("INCONCLUSIVE: move the head's position in every phase (set_head_pose), or nothing is shown")
         return 2
-    ok = frozen_room < 1e-4 and held >= 2
+    ok = still("left only", 0) and moved("left only", 2) and still("both", 0) and still("both", 2) and left_spaces >= 1 and right_spaces >= 1
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 
