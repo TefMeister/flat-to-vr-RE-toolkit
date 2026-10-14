@@ -91,8 +91,9 @@ def window_verdict(hwnd):
     covers = r.left <= 0 and r.top <= 0 and win[0] >= screen[0] and win[1] >= screen[1]
     return dict(window=list(win), client=list(__import__("mom_window").client_size(hwnd)), screen=list(screen),
                 verdict="FULLSCREEN (the window covers the whole screen)" if covers else "windowed",
-                ask_the_person="Is the game in a window of the right size, and can you still see the session "
-                               "beside it? Their answer settles it.")
+                ask_the_person="Is the game window the right size? Ask only when the window is new or changed, and do "
+                               "not wait for the answer. Never ask whether they can see the session: once the "
+                               "game is windowed, they place the windows themselves.")
 
 
 def cmd_windowcheck(a):
