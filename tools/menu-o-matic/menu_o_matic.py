@@ -22,6 +22,9 @@ For any person or AI that can run a command and (only when needed) look at a pic
     A route's "key_input" says how the game takes keys: "sendinput" (default), "post" (window messages, for
     games SendInput never reaches) or "both".
     routes FOLDER                                              the map: every route of a game, start -> end
+    known  FOLDER [--add SECTION "TEXT"]                       what the game has taught us (KNOWN.md beside the
+                                                               routes): read it before every launch; add what
+                                                               you learn the same session (mom_known.py)
     SETUP, done once per game WITH the person (see README.md, "Setting a game up"):
     record <window> FILE [--frames DIR]                        the person plays: Home = start (may be before
                                                                the game starts), Page Down + a key = one step
@@ -341,6 +344,20 @@ def cmd_routes(a):
     say(event="routes", folder=a.folder, routes=rows)
 
 
+def cmd_known(a):
+    """Print what this game has taught us and its route map, or add one dated line to it."""
+    import mom_known as K
+    if a.add:
+        try:
+            K.add(a.folder, a.add[0], a.add[1])
+        except ValueError as e:
+            say(event="error", error=str(e))
+            sys.exit(1)
+    print(K.ensure(a.folder), flush=True)
+    say(event="known", folder=a.folder, file=K.path_of(a.folder), added=bool(a.add))
+    cmd_routes(a)
+
+
 def cmd_note(a):
     route = R.load(a.route)
     route.setdefault("setup_notes", []).append(a.text)
@@ -372,6 +389,8 @@ def register_common(sub):
     g.add_argument("--button"); s.add_argument("--dialog", default="")
     s.set_defaults(f=cmd_add)
     s = sub.add_parser("routes"); s.add_argument("folder"); s.set_defaults(f=cmd_routes)
+    s = sub.add_parser("known"); s.add_argument("folder"); s.add_argument("--add", nargs=2, metavar=("SECTION", "TEXT"))
+    s.set_defaults(f=cmd_known)
     s = sub.add_parser("record"); s.add_argument("window"); s.add_argument("route"); s.add_argument("--frames")
     s.set_defaults(f=cmd_record)
     s = sub.add_parser("mark-image"); s.add_argument("route"); s.add_argument("n", type=int); s.add_argument("name")

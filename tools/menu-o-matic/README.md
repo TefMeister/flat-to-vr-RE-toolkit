@@ -198,6 +198,21 @@ Each step saves exactly the input that was used, so every menu gets its own butt
 Recorded routes belong with each game's control profile in `ai-game-control-profiles`
 (`routes/<game>/<route>.json`), next to the prose routes and hazards already written there.
 
+## Keep what each game teaches you: KNOWN.md (2026-10-14)
+
+The player's idea: the tools should be used to get to know each game better every time, so a session that starts
+a game already knows its menus and controls. Each game's route folder holds a `KNOWN.md` beside the routes:
+the menu screens and the button that gets past each, the controls that work (held or tapped, how long), the save
+spot, the hazards (walls, intro videos, "keep these settings?" countdowns), what failed, and ideas for the tool.
+
+- **Before the game starts:** `known <folder>` prints KNOWN.md and the route map. It makes KNOWN.md from a
+  template the first time.
+- **The moment something new is learned:** `known <folder> --add Hazards "the intro video only skips with Esc"`
+  adds a dated line under that section. Fix a route that broke in the same session.
+- **When the tool itself was missing something** (a kind of input, a check, a way to recover), note it under
+  `Tool ideas` and, if it is quick, add it to the tool.
+- Only game facts go in it: route folders are often shared publicly.
+
 ## Tests
 
 **First game set up together: Burnout Paradise, 2026-09-28.** The player played from launch to driving in the city

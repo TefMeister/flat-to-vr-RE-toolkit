@@ -177,5 +177,27 @@ with tempfile.TemporaryDirectory() as tmp:
     except ValueError:
         check("load rejects a wait for an unknown checkpoint", True)
 
+# KNOWN.md: what a game has taught us
+import datetime
+import mom_known as K
+with tempfile.TemporaryDirectory() as tmp:
+    folder = os.path.join(tmp, "routes", "some-game")
+    body = K.ensure(folder)
+    check("known: made from the template, every section there", all(f"## {x}" in body for x in K.SECTIONS))
+    day = datetime.date(2026, 10, 14)
+    K.add(folder, "menus", "title screen: Enter, not Space", today=day)
+    out = K.add(folder, "Menus", "options: third line", today=day)
+    lines = out.split("\n")
+    i = lines.index("## Menus")
+    check("known: lines land under their section, in order",
+          lines[i + 2] == "- 2026-10-14: title screen: Enter, not Space"
+          and lines[i + 3] == "- 2026-10-14: options: third line")
+    check("known: the next section still follows", "## Controls" in lines[i + 4:i + 6])
+    try:
+        K.add(folder, "Recipes", "x")
+        check("known: an unknown section is refused", False)
+    except ValueError:
+        check("known: an unknown section is refused", True)
+
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)
