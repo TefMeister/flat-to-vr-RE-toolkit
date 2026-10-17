@@ -28,7 +28,7 @@ KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE = 0x0001, 0x0002, 0x0
 # Scancodes. The second value marks EXTENDED keys; get it wrong and the key silently does nothing.
 KEYS = {
     "esc": (0x01, False), "enter": (0x1C, False), "space": (0x39, False), "tab": (0x0F, False),
-    "backspace": (0x0E, False), "tilde": (0x29, False),
+    "backspace": (0x0E, False), "tilde": (0x29, False), "minus": (0x0C, False), "equals": (0x0D, False),
     "up": (0x48, True), "down": (0x50, True), "left": (0x4B, True), "right": (0x4D, True),
     "home": (0x47, True), "end": (0x4F, True), "pageup": (0x49, True), "pagedown": (0x51, True),
     "lshift": (0x2A, False), "lctrl": (0x1D, False), "lalt": (0x38, False),
