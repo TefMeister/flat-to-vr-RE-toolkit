@@ -55,7 +55,7 @@ about your contribution. Please open a GitHub issue on this repository and we'll
 the credits as soon as possible.
 
 **If you want your work removed or not used:** if you're credited or referenced here and
-you'd rather not be, open a GitHub issue or email **(an issue on this repository)** and tell us
+you'd rather not be, open a GitHub issue and tell us
 **exactly what to remove**. We'll do it promptly — no argument, no delay, and no need to
 prove ownership or explain why — and find another way to do the job that doesn't rely on
 your material. To be clear about how we work: we **learn techniques and credit their

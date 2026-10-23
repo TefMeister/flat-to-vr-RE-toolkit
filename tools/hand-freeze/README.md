@@ -93,4 +93,4 @@ OpenXR headers in `third_party/openxr/` are from the Khronos Group's
 [pyopenxr](https://github.com/cmbruns/pyopenxr) and the OpenXR Simulator by fholger, extended by
 elliotttate and webhead2oo9 (MIT).
 
-If you should be credited here and are not, email <(an issue on this repository)> and it will be fixed.
+If you should be credited here and are not, open an issue on this repository and it will be fixed.

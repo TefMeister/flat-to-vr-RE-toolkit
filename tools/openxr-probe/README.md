@@ -62,4 +62,4 @@ Python for our own contract. The simulator itself is by
 (Vulkan backend, ten measured headset profiles, real `xrEndFrame` timing, 32-bit runtime, and
 the MCP server). MIT licence throughout.
 
-If you should be credited here and are not, email <(an issue on this repository)> and it will be fixed.
+If you should be credited here and are not, open an issue on this repository and it will be fixed.
