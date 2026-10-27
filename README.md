@@ -13,6 +13,10 @@ project. The day-to-day running of the projects (session lanes, the work board, 
 helpers) lives in the **[Lanes](https://github.com/TefMeister/lanes-plugin)** plugin for Claude
 Code, which can also download this kit for you.
 
+## Download
+
+**[Download the whole toolkit as one zip](https://github.com/TefMeister/flat-to-vr-RE-toolkit/archive/refs/heads/main.zip)** (always the newest copy; no account or Lanes needed). Unzip it anywhere. With the [Lanes](https://github.com/TefMeister/lanes-plugin) plugin for Claude Code you can get it from `/lanes:setup` instead, and it stays up to date by itself.
+
 ## What's here
 
 | File | What it is |
