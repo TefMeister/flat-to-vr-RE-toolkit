@@ -66,16 +66,23 @@ walks through all of the tools on this page, installing each one or giving you i
 
 - **SteamVR / OpenVR** — https://github.com/ValveSoftware/openvr. Install SteamVR; a
   Quest over a streaming link (Link/Air Link/Virtual Desktop) presents as SteamVR.
-- **OpenXR** — the portable alternative; https://www.khronos.org/openxr/. UEVR's OpenXR
-  path is the reference for clean per-eye submission + pose sampling.
+- **OpenXR** — our default output path since 2026-09-18; https://www.khronos.org/openxr/.
+  UEVR's OpenXR path is the reference for clean per-eye submission + pose sampling.
+- **OpenXR Simulator** — a pretend headset in a desktop window, so VR work runs with no
+  headset plugged in: https://github.com/elliotttate/OpenXR-Simulator (original) or
+  webhead2oo9's fork with a 32-bit runtime and an MCP server,
+  https://github.com/webhead2oo9/OpenXR-Simulator. Point one game at it with
+  `XR_RUNTIME_JSON` rather than switching the whole PC over. Lanes' `openxr-sim.py install`
+  downloads it. Check it with [`tools/openxr-probe/`](tools/openxr-probe/).
 
 ## 4. Repos & backups (standing convention)
 
-- **Five repos per game:** `<project>-mod` (public, release-gated),
-  `<project>-dev-archive` (public), `<project>-modding-notes` (public),
-  `<project>-staging` (**private**, free WIP / cross-machine handoff),
-  `<project>-vr-engine-research` (public). See
-  [`templates/new-project-checklist.md`](templates/new-project-checklist.md).
+- **One repo per game** (`<project>`, since 2026-08-30), with folders: `mod/` (release
+  packaging), `dev-archive/` (the live source and its history), `modding-notes/` (field
+  notes), `engine-research/` (the dossier) and `external-research/` (public leads). Unfinished
+  work and hand-over between PCs go in one **private** `staging` repo, a folder per game. See
+  [`templates/new-project-checklist.md`](templates/new-project-checklist.md). Lanes'
+  `estate.py` sets all of this up on a new GitHub account.
 - **Local backup clones** of every game-project repo live in
   `D:\claude video game stuff\github-backups\` (create the equivalent folder on a new
   machine). This toolkit repo is cloned there too.
@@ -83,8 +90,10 @@ walks through all of the tools on this page, installing each one or giving you i
 
 ## 5. Claude Code skills
 
-Install and verify Superpowers, x64dbg-skills, and the x64dbg MCP server per
-[`SKILLS.md`](SKILLS.md).
+Install and verify the plugins and MCP servers in [`SKILLS.md`](SKILLS.md): Superpowers,
+x64dbg-skills and its MCP server, Lanes, Ghidrust, the RE Engine and UEVR connectors, the
+OpenXR Simulator's MCP server, Blender MCP and gimp-mcp. Lanes' `/lanes:setup` installs most
+of them for you.
 
 ---
 

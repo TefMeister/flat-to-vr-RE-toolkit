@@ -123,9 +123,9 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
   VR work. Reasons: the tooling around it is deeper, Virtual Desktop + Quest 3 is the
   household's actual setup, and OpenXR is what the desktop simulator below can stand in for.
 
-### OpenXR-Simulator — fholger, extended by elliotttate and webhead2oo9
+### OpenXR-Simulator — elliotttate, extended by webhead2oo9
 - **Link:** https://github.com/webhead2oo9/OpenXR-Simulator (the fork we use) ·
-  original: https://github.com/fholger/OpenXR-Simulator
+  original: https://github.com/elliotttate/OpenXR-Simulator
 - **What:** A desktop OpenXR *runtime*. Any OpenXR application launched against it renders
   into a normal resizable window as a side-by-side stereo pair, with mouse/keyboard head
   control. MIT.

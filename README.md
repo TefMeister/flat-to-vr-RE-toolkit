@@ -5,18 +5,20 @@ engine and bringing it into VR — the reusable half of the work, distilled from
 conversions and containing **only things we have actually used and shipped with**.
 Nothing speculative, nothing untested.
 
-This is a cross-project **starter kit**. Each individual game gets its own five
-repositories (`-mod`, `-dev-archive`, `-modding-notes`, `-staging`,
-`-vr-engine-research`); this repo sits above all of them and holds what is the same
-every time: the playbook, the tool list, the Claude Code skills we depend on, the
-setup steps, and the templates to spin up a new project.
+This is a cross-project **starter kit**. Each game gets one repository of its own (named
+`<game>-vr`, with folders for the mod, its development history, field notes and engine research);
+this repo sits above all of them and holds what is the same every time: the playbook, the tool
+list, the Claude Code skills we depend on, the setup steps, and the templates to spin up a new
+project. The day-to-day running of the projects (session lanes, the work board, the VR testing
+helpers) lives in the **[Lanes](https://github.com/TefMeister/lanes-plugin)** plugin for Claude
+Code, which can also download this kit for you.
 
 ## What's here
 
 | File | What it is |
 |---|---|
 | **[PLAYBOOK.md](PLAYBOOK.md)** | The engine-agnostic, phase-by-phase method. One North Star: *the game rendering in a headset with head tracking*, everything else built on top. This is the heart of the kit. |
-| **[TOOLKIT.md](TOOLKIT.md)** | The tested tool list — for each tool: what it is, **why we use it**, which playbook phase it serves, and which of our games proved it. |
+| **[TOOLKIT.md](TOOLKIT.md)** | The tested tool list — for each tool: what it is, **why we use it**, which playbook phase it serves, and which of our games proved it. Also our own apps (Hand Freeze, Window View, Hand Poser, VR Bench, BeG0nE) and Lanes. |
 | **[SKILLS.md](SKILLS.md)** | The Claude Code skills / plugins / MCP servers we rely on, with install and verify steps. |
 | **[SETUP.md](SETUP.md)** | Toolchain bootstrap — compiler, hooking library, Python, debugger + automation bridge, injection vectors. |
 | **[tools/](tools/)** | Small scripts written for one game and kept because they generalised — see the table below. |
@@ -25,8 +27,9 @@ setup steps, and the templates to spin up a new project.
 
 ### `tools/` — our own scripts
 
-Each was written for a specific game, then kept because it turned out to apply generally. All are
-PowerShell, no install, no dependencies.
+Each was written for a specific game, then kept because it turned out to apply generally. The
+PowerShell ones need nothing installed; the Python ones say at the top what they need (usually
+`pefile`, `capstone`, `Pillow` or `vgamepad`).
 
 | Script | What it does | Proven on |
 |---|---|---|
@@ -41,6 +44,12 @@ PowerShell, no install, no dependencies.
 | [`send-key.ps1`](tools/send-key.ps1) | Synthetic keyboard input by DIK scancode. Usually works where mouse injection does not. | XIII, Psychonauts |
 | [`send-mouse.ps1`](tools/send-mouse.ps1) | Relative mouse motion. **Kept mainly as a fast negative** — it cannot beat DirectInput exclusive mode, and one run tells you so. | XIII (failed), Psychonauts (failed) |
 | [`unreal-nav.ps1`](tools/unreal-nav.ps1) | Closed-loop navigation from pose telemetry: turn to a heading, walk a measured distance. Lands a heading within ~1°. | XIII |
+| [`game-harness.py`](tools/game-harness.py) | Sees a running game window, keys it and mouses it in one tool. | — |
+| [`virtual-pad.py`](tools/virtual-pad.py), [`hold-pads.py`](tools/hold-pads.py), [`pad-session.py`](tools/pad-session.py) | Pretend XInput gamepads through ViGEmBus: drive a game with one, keep several plugged in, or hold them and run a scripted sequence. | — |
+| [`same-build.py`](tools/same-build.py) | Says whether a deployed DLL or EXE was built from the same source as another, so a test never runs against a stale copy. | — |
+| [`openxr-probe/`](tools/openxr-probe/) | Creates a real OpenXR session against any runtime, submits frames and exits 0 or 1: will the VR plumbing hold, with no headset and no game? | dev PC, OpenXR Simulator |
+| [`menu-o-matic/`](tools/menu-o-matic/) | Menu-o-matiC, Move-o-matiC and State-o-matiC: replay a recorded menu or walking route, and tell which screen a game is on. Routes per game live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). | nineteen games' routes |
+| [`hand-freeze/`](tools/hand-freeze/) | The first version of Hand Freeze, kept as it was; use [hand-freeze-vr](https://github.com/TefMeister/hand-freeze-vr). | — |
 
 **A warning worth repeating from inside two of these:** a rotator read from telemetry may already
 be *unwrapped*. Applying a shortest-arc wrap to it makes a real −199° turn read as +161°, which
@@ -74,20 +83,24 @@ change `d3d9ctab.c`, run both.
 ## How to use it
 
 1. **New game?** Open [`templates/new-project-checklist.md`](templates/new-project-checklist.md)
-   and work top to bottom: scaffold the repos, add the standard `PLAYBOOK.md` pointer file
-   (linking back to this toolkit's canonical copy) to the game's `-vr-engine-research` repo,
+   and work top to bottom: make the game's repo, add the standard `PLAYBOOK.md` pointer file
+   (linking back to this toolkit's canonical copy) to its `engine-research/` folder,
    and start its dossier from the template.
-2. **Setting up a machine?** Follow [`SETUP.md`](SETUP.md) and install the skills in
-   [`SKILLS.md`](SKILLS.md).
+2. **Setting up a machine?** Install [Lanes](https://github.com/TefMeister/lanes-plugin) and run
+   `/lanes:setup`, which offers almost everything here; or follow [`SETUP.md`](SETUP.md) and
+   [`SKILLS.md`](SKILLS.md) by hand.
 3. **Working a conversion?** Follow the phases in [`PLAYBOOK.md`](PLAYBOOK.md); reach for
    tools by phase using [`TOOLKIT.md`](TOOLKIT.md).
 
 ## Games this kit has been proven on
 
-RE2/RE3 (RE Engine), The Evil Within (id Tech 5 / STEM), XIII (Unreal Engine 2),
-Psychonauts (bespoke), Far Cry 2 (Dunia), Enslaved (Unreal Engine 3). The tools listed
-here earned their place on those projects — see each tool's "proven on" note in
-[`TOOLKIT.md`](TOOLKIT.md).
+RE2, RE3 and Village (RE Engine), Silent Hill 2 remake (Unreal Engine 5, UEVR), The Evil Within
+(id Tech 5 / STEM), XIII (Unreal Engine 2), Enslaved and Alice: Madness Returns (Unreal Engine 3),
+Psychonauts and Manhunt (their own engines), Far Cry 2 (Dunia), Mad Max (Avalanche), Condemned 2
+and The Darkness (Xbox 360 recompilations), and the GZDoom weapon work. The tools listed here
+earned their place on those projects — see each tool's "proven on" note in
+[`TOOLKIT.md`](TOOLKIT.md). The [profile page](https://github.com/TefMeister) has every project
+and where it stands.
 
 ## Related repositories
 

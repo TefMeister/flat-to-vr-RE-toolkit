@@ -53,12 +53,11 @@ back symmetric, the runtime or our maths changed, not the headset.
 ## Credit
 
 The pass/fail-probe idea is **[webhead2oo9](https://github.com/webhead2oo9)**'s, from
-`probe/xr_probe.cpp` in his fork of
+`probe/xr_probe.cpp` in their fork of
 [OpenXR-Simulator](https://github.com/webhead2oo9/OpenXR-Simulator), where it replays
 BetterVR's exact OpenXR sequence and returns an exit code. This is the same idea rewritten in
 Python for our own contract. The simulator itself is by
-**[fholger](https://github.com/fholger/OpenXR-Simulator)**, extended by
-**[elliotttate](https://github.com/elliotttate/OpenXR-Simulator)** and then by webhead2oo9
+**[elliotttate](https://github.com/elliotttate/OpenXR-Simulator)**, extended by webhead2oo9
 (Vulkan backend, ten measured headset profiles, real `xrEndFrame` timing, 32-bit runtime, and
 the MCP server). MIT licence throughout.
 
