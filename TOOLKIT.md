@@ -320,7 +320,7 @@ scripted sequence on one.
 ## Our apps (each in its own repo)
 
 Desktop apps and layers we built for our own VR work. The four helper windows (Hand Freeze, Hand Poser,
-Grab Zones, Window View) are made to be used together from inside the headset.
+Grip Zones, Window View) are made to be used together from inside the headset.
 
 ### Hand Freeze — hold the VR controllers still, in any OpenXR game
 - **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v4, the right-stick click)
@@ -340,9 +340,9 @@ Grab Zones, Window View) are made to be used together from inside the headset.
 - **Proven on:** its own self-test and a stand-in game; in use for Visceral RE8's hand poses, not yet confirmed
   in a real headset session. Inspired by alphaZomega's EMV Engine poser.
 
-### Grab Zones — move the places the hand can grab a gun
-- **Link:** https://github.com/TefMeister/visceral-re8-vr (in `dev-archive/native/zones-app/`)
-- **What:** A desktop window for Visceral RE8 (Resident Evil Village VR): every place the left hand can take hold
+### Grip Zones — move the places the hand can grip a gun
+- **Link:** https://github.com/TefMeister/grip-zones-vr (releases; v1.0. Called Grab Zones until 2026-10-27)
+- **What:** A desktop window, for now for Visceral RE8 (Resident Evil Village VR) only: every place the left hand can take hold
   of a gun (magazine, magazine well, slide, pump, bolt, front grip) is a zone with sliders for position and
   size, moved live on the gun in the game, per gun or for all guns, with numbered hand pairs (where the hand is
   taken, where it lands). Made to be used inside the headset through Window View.
@@ -352,7 +352,7 @@ Grab Zones, Window View) are made to be used together from inside the headset.
 - **Link:** https://github.com/TefMeister/window-view-vr
 - **What:** A desktop app plus an OpenXR layer (D3D11/D3D12). Any desktop window hangs in front of you inside
   the game, see-through as you like, and can be used with the mouse and keyboard (Page Up / Page Down) or the
-  VR controllers while the game only hears the controllers. This is how Hand Poser and Grab Zones are used
+  VR controllers while the game only hears the controllers. This is how Hand Poser and Grip Zones are used
   without taking the headset off.
 - **Proven on:** v1.2 worn in a real headset on the home PC (2026-10-24: "this works really well now!").
 
