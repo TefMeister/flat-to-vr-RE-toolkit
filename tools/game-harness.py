@@ -30,7 +30,7 @@ Usage:
     python game-harness.py <window-substring> click 960 540     # left-click at CLIENT x,y
     python game-harness.py <window-substring> watch 6 0.4      # is it rendering?
 """
-import ctypes, ctypes.wintypes as w, time, sys, os
+import ctypes, ctypes.wintypes as w, time, sys
 
 u, g = ctypes.windll.user32, ctypes.windll.gdi32
 SRCCOPY = 0x00CC0020
