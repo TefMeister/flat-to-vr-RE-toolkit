@@ -233,9 +233,10 @@ what approach they take, drawn from **publicly available, non-paywalled** inform
 
 ## Tools we wrote (in `tools/`)
 
-Small, dependency-free PowerShell utilities that earned their place by being used
-in real sessions. Rule for this section is the same as the rest of the toolkit:
+Small PowerShell and Python utilities that earned their place by being used in real
+sessions. Rule for this section is the same as the rest of the toolkit:
 **only things actually shipped with, not things that seemed like a good idea.**
+Our bigger apps live in their own repos; they are listed after this section.
 
 ### `pe-inspect.ps1` — static PE inspection
 List/check exports, dump bytes at a virtual address or at an exported symbol.
@@ -273,9 +274,105 @@ into a single clear colour.
 
 Idea credit: webhead2oo9's `probe/xr_probe.cpp` — see `CREDITS.md`.
 
-### `hand-freeze/` — hold both VR controllers still, in any OpenXR game
-A desktop app (ON/OFF switch, seconds box, Freeze and Unfreeze buttons) plus an OpenXR API layer.
-After the countdown both controllers stay where they were, fixed in the room, while the game runs
-and the headset tracks: put them down and tune hand poses with the mouse. Proven end to end on the
-OpenXR Simulator (`test/freeze_test.py`), not yet in a real game. OpenXR games only, 64-bit only.
-Details, build and limits: `hand-freeze/README.md`.
+### `hand-freeze/` — the first version of Hand Freeze
+The first version (2026-10-13) of the app listed below under **Hand Freeze**, kept here as it was. The
+current one, with 32-bit games, single-hand freezing and the right-stick-click freeze, lives in its own
+repo, [hand-freeze-vr](https://github.com/TefMeister/hand-freeze-vr). Use that one.
+
+### `menu-o-matic/` — Menu-o-matiC, Move-o-matiC and State-o-matiC
+Gets a game from launch to gameplay by itself, by replaying a menu route a person walked once: key presses
+plus small screen checkpoints compared by numbers, so a replay looks at nothing until something unexpected
+appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorded route; State-o-matiC knows
+which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
+live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
+Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for nineteen games so far, among
+them Hard Reset, Alice: Madness Returns, Mad Max and Resident Evil Village.
+
+### Shader readers: `d3d9-ctab.py`, `dxbc-reflect.py`, `dxbc-usage.py`
+Read a compiled shader's own description of itself out of any file (game archive, memory dump, capture):
+`d3d9-ctab.py` the D3D9 constant tables, `dxbc-reflect.py` the D3D10/11 reflection (constant buffers and
+their variables), `dxbc-usage.py` which shader stages use which constant buffer. That is how the view and
+projection matrices are found without a debugger (Phase 3).
+
+### `static-disasm.py` — disassemble with nothing running
+Engine-agnostic static disassembly helper for the game's executable: find code by bytes or strings and read
+it without launching the game. Phase 0 and 3.
+
+### `list-exports.ps1` — what a DLL or EXE exports
+Lists a PE file's exports, optionally filtered by a pattern. The quick first look before a proxy DLL.
+
+### `same-build.py` — is this the build we think it is?
+Says whether a deployed DLL or EXE was built from the same source as another one, so a test is never run
+against a stale copy by mistake.
+
+### Driving a game: `game-harness.py`, `send-key.ps1`, `send-mouse.ps1`, `unreal-nav.ps1`
+`game-harness.py` sees a running game window, keys it and mouses it in one tool. `send-key.ps1` sends
+keyboard scancodes and `send-mouse.ps1` relative mouse moves (mouse-look) through `SendInput`;
+`unreal-nav.ps1` turns to a heading and walks a measured distance, re-measuring the player's position from
+the game's log after each step (written for Unreal-era games, usable on any game that logs its pose). Several routes on purpose: each way of sending input
+fails silently on some window, so they are layered and measured against a no-input run.
+
+### Pretend gamepads: `virtual-pad.py`, `hold-pads.py`, `pad-session.py`
+Virtual XInput controllers through ViGEmBus. `virtual-pad.py` drives a game with one; `hold-pads.py` holds
+several plugged in until stopped (for games that need a pad present); `pad-session.py` holds them and runs a
+scripted sequence on one.
+
+## Our apps (each in its own repo)
+
+Desktop apps and layers we built for our own VR work. The four helper windows (Hand Freeze, Hand Poser,
+Grab Zones, Window View) are made to be used together from inside the headset.
+
+### Hand Freeze — hold the VR controllers still, in any OpenXR game
+- **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v3.2)
+- **What:** A desktop app plus an OpenXR layer. Freeze the left hand, the right hand or both: after the
+  countdown they stay where they were, fixed in the room, while the game runs and the headset tracks. Put the
+  controllers down and tune hand poses with the mouse. A right-stick click freezes and unfreezes from inside
+  the headset; "Buttons too" holds the buttons as well. 32-bit and 64-bit games since v3.1.
+- **Proven on:** the OpenXR Simulator (measured: frozen hands move 0.000 m while the head moves); Visceral RE2
+  VR in a real game with buttons held (2026-10-14); the right-stick click worn in Resident Evil Village
+  (2026-10-25). OpenXR games only.
+
+### Hand Poser — pose the player's fingers with sliders
+- **Link:** https://github.com/TefMeister/hand-poser-vr
+- **What:** A compact desktop window of joint sliders plus one REFramework script, for RE Engine games. One box
+  per finger; move a slider and that joint follows live while the game's animation runs around it. Undo/redo,
+  autosave, named builds, one pose per gun, and VR-controller nudges through Window View.
+- **Proven on:** its own self-test and a stand-in game; in use for Visceral RE8's hand poses, not yet confirmed
+  in a real headset session. Inspired by alphaZomega's EMV Engine poser.
+
+### Grab Zones — move the places the hand can grab a gun
+- **Link:** https://github.com/TefMeister/visceral-re8-vr (in `dev-archive/native/zones-app/`)
+- **What:** A desktop window for Visceral RE8 (Resident Evil Village VR): every place the left hand can take hold
+  of a gun (magazine, magazine well, slide, pump, bolt, front grip) is a zone with sliders for position and
+  size, moved live on the gun in the game, per gun or for all guns, with numbered hand pairs (where the hand is
+  taken, where it lands). Made to be used inside the headset through Window View.
+- **Proven on:** Visceral RE8, built 2026-10-25; still being tuned in the headset.
+
+### Window View — your desktop windows inside any OpenXR game
+- **Link:** https://github.com/TefMeister/window-view-vr
+- **What:** A desktop app plus an OpenXR layer (D3D11/D3D12). Any desktop window hangs in front of you inside
+  the game, see-through as you like, and can be used with the mouse and keyboard (Page Up / Page Down) or the
+  VR controllers while the game only hears the controllers. This is how Hand Poser and Grab Zones are used
+  without taking the headset off.
+- **Proven on:** v1.2 worn in a real headset on the home PC (2026-10-24: "this works really well now!").
+
+### VR Bench — a robot player for VR games
+- **Link:** https://github.com/TefMeister/vr-bench (the layer) · driven by the Lanes plugin's `/lanes:bench`
+- **What:** An OpenXR layer that gives a game pretend hands, buttons and sticks read from a file, so a VR game
+  can be tested and learned with nobody wearing a headset. Paired with the OpenXR-Simulator above for the head.
+- **Status:** the layer's first release (0.1.0) works; the "look at this" chord for a worn headset is still
+  being built.
+
+### BeG0nE — tools that find and remove VR faults
+- **Link:** https://github.com/TefMeister/BeG0nE
+- **What:** Recorders a mod wires in, plus readers that turn each headset test into a short report: Camera
+  Jitter (stepped, jittery camera; finds rate faults), Ghost Hand (gaps between the real hand and the game's
+  hand), Occlusion Drift (two-handed aim drifting) and Flickers (single-frame flashes). With the Lanes plugin
+  the test is filmed and each jittery second is cut out as frames.
+- **Proven on:** 200+ reports across our VR mods; Flickers caught every planted flash on the simulator.
+
+### Lanes — the Claude Code plugin all of this runs in
+- **Link:** https://github.com/TefMeister/lanes-plugin
+- **What:** A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR
+  video game modding: the session lanes, the weekly tool check, Menu-o-matiC, VR Bench, the BeG0nE rider and
+  installers for the apps above. Its `docs/TOOLS.md` lists every outside tool we use, with its maker.
