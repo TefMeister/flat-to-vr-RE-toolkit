@@ -323,7 +323,7 @@ Desktop apps and layers we built for our own VR work. The four helper windows (H
 Grab Zones, Window View) are made to be used together from inside the headset.
 
 ### Hand Freeze — hold the VR controllers still, in any OpenXR game
-- **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v3.2)
+- **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v4, the right-stick click)
 - **What:** A desktop app plus an OpenXR layer. Freeze the left hand, the right hand or both: after the
   countdown they stay where they were, fixed in the room, while the game runs and the headset tracks. Put the
   controllers down and tune hand poses with the mouse. A right-stick click freezes and unfreezes from inside
