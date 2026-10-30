@@ -31,6 +31,7 @@ KEYS = {
     "backspace": (0x0E, False), "tilde": (0x29, False), "minus": (0x0C, False), "equals": (0x0D, False),
     "up": (0x48, True), "down": (0x50, True), "left": (0x4B, True), "right": (0x4D, True),
     "home": (0x47, True), "end": (0x4F, True), "pageup": (0x49, True), "pagedown": (0x51, True),
+    "insert": (0x52, True), "delete": (0x53, True),   # 2026-10-30: Insert opens / closes the REFramework overlay
     "lshift": (0x2A, False), "lctrl": (0x1D, False), "lalt": (0x38, False),
     "numpad0": (0x52, False), "numpad1": (0x4F, False), "numpad2": (0x50, False),
     "numpad3": (0x51, False), "numpad4": (0x4B, False), "numpad5": (0x4C, False),
