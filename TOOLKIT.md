@@ -285,7 +285,7 @@ plus small screen checkpoints compared by numbers, so a replay looks at nothing 
 appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorded route; State-o-matiC knows
 which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
 live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
-Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for nineteen games so far, among
+Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty games so far, among
 them Hard Reset, Alice: Madness Returns, Mad Max and Resident Evil Village.
 
 ### Shader readers: `d3d9-ctab.py`, `dxbc-reflect.py`, `dxbc-usage.py`
@@ -336,17 +336,18 @@ Grip Zones, Window View) are made to be used together from inside the headset.
 - **Link:** https://github.com/TefMeister/hand-poser-vr
 - **What:** A compact desktop window of joint sliders plus one REFramework script, for RE Engine games. One box
   per finger; move a slider and that joint follows live while the game's animation runs around it. Undo/redo,
-  autosave, named builds, one pose per gun, and VR-controller nudges through Window View.
-- **Proven on:** its own self-test and a stand-in game; in use for Visceral RE8's hand poses, not yet confirmed
-  in a real headset session. Inspired by alphaZomega's EMV Engine poser.
+  autosave, named builds, one pose per gun, and VR-controller nudges through Window View. The game script loads
+  each gun's pose by itself, so the poses work without the app open.
+- **Proven on:** its own self-test (27 checks, 2026-11-01) and a stand-in game; in use for Visceral RE8's hand
+  poses. Inspired by alphaZomega's EMV Engine poser.
 
 ### Grip Zones — move the places the hand can grip a gun
-- **Link:** https://github.com/TefMeister/grip-zones-vr (releases; v1.0. Called Grab Zones until 2026-10-27)
+- **Link:** https://github.com/TefMeister/grip-zones-vr (releases. Called Grab Zones until 2026-10-27)
 - **What:** A desktop window, for now for Visceral RE8 (Resident Evil Village VR) only: every place the left hand can take hold
-  of a gun (magazine, magazine well, slide, pump, bolt, front grip) is a zone with sliders for position and
-  size, moved live on the gun in the game, per gun or for all guns, with numbered hand pairs (where the hand is
-  taken, where it lands). Made to be used inside the headset through Window View.
-- **Proven on:** Visceral RE8, built 2026-10-25; still being tuned in the headset.
+  of a gun (magazine, magazine well, slide, pump, bolt, front grip, shell port) is a zone with sliders for
+  position and size, moved live on the gun in the game, per gun or for all guns. One list of the gun's own zones;
+  the spheres show by themselves as the left hand comes near. Made to be used inside the headset through Window View.
+- **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01); still being tuned in the headset.
 
 ### Window View — your desktop windows inside any OpenXR game
 - **Link:** https://github.com/TefMeister/window-view-vr
@@ -354,14 +355,15 @@ Grip Zones, Window View) are made to be used together from inside the headset.
   the game, see-through as you like, and can be used with the mouse and keyboard (Page Up / Page Down) or the
   VR controllers while the game only hears the controllers. This is how Hand Poser and Grip Zones are used
   without taking the headset off.
-- **Proven on:** v1.2 worn in a real headset on the home PC (2026-10-24: "this works really well now!").
+- **Proven on:** v1.2 worn in a real headset on the home PC (2026-10-24: "this works really well now!"); v1.9
+  worn in Resident Evil Village (2026-10-30), less lag in D3D12 games with six windows open.
 
 ### VR Bench — a robot player for VR games
 - **Link:** https://github.com/TefMeister/vr-bench (the layer) · driven by the Lanes plugin's `/lanes:bench`
 - **What:** An OpenXR layer that gives a game pretend hands, buttons and sticks read from a file, so a VR game
   can be tested and learned with nobody wearing a headset. Paired with the OpenXR-Simulator above for the head.
-- **Status:** the layer's first release (0.1.0) works; the "look at this" chord for a worn headset is still
-  being built.
+- **Status:** the layer works (0.1.1 released; the newest build also answers the short controller paths some
+  games ask for, such as Resident Evil Village's); the "look at this" chord for a worn headset is still being built.
 
 ### BeG0nE — tools that find and remove VR faults
 - **Link:** https://github.com/TefMeister/BeG0nE
@@ -369,7 +371,7 @@ Grip Zones, Window View) are made to be used together from inside the headset.
   Jitter (stepped, jittery camera; finds rate faults), Ghost Hand (gaps between the real hand and the game's
   hand), Occlusion Drift (two-handed aim drifting) and Flickers (single-frame flashes). With the Lanes plugin
   the test is filmed and each jittery second is cut out as frames.
-- **Proven on:** 200+ reports across our VR mods; Flickers caught every planted flash on the simulator.
+- **Proven on:** 230+ reports across our VR mods; Flickers caught every planted flash on the simulator.
 
 ### Lanes — the Claude Code plugin all of this runs in
 - **Link:** https://github.com/TefMeister/lanes-plugin
