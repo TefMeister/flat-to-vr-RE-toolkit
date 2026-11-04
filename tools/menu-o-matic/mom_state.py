@@ -7,6 +7,11 @@ No game announces its state, so this combines signs that work from outside almos
   - DISK: how fast the game reads from disk                 -> loading reads hard
   - POKE (optional, it presses a key): does the picture answer a key? -> gameplay answers, cutscenes don't
   - TAUGHT: screens the person showed during setup (checkpoints with a state name) -> the surest sign of all
+  - HUNG: Windows says the window stopped answering            -> frozen
+  - CPU: how many processor cores the game keeps busy         -> a picture that never changes, no disk reads and
+    cores still burning is a game stuck in a loop (RE2 2026-11-02: frozen at its "NOW 10%" loading text for minutes,
+    2.0 cores busy, 0 MB/s, every pixel still, and Windows still called it responding)
+  - IN FRONT: is the window the foreground one               -> RE Engine games pause when it is not
 The signs are pure numbers here, so all of it can be tested with drawn pictures. Every threshold is a named
 setting; they were first set from a live game (Burnout Paradise, 2026-09-28) and are meant to be tuned per game.
 """
@@ -22,6 +27,8 @@ MOVING_SHARE = 0.15               # more than this share of the picture changing
 STILL_SHARE = 0.01                # less than this = a still picture
 SPINNER_MAX_SHARE = 0.06          # motion limited to this share of the picture = "only a small patch moves"
 DISK_LOADING_MB_S = 8.0           # reading faster than this = loading (checked against the disk counter)
+FROZEN_BUSY_CORES = 1.5          # a picture where NOTHING changes, no disk, and at least this many cores busy = stuck
+                                  # (RE2 2026-11-02 froze at 2.0; a still menu in front measured ~0.3-1 elsewhere)
 POKE_ANSWER = 0.05                # the picture must change this much more after a key than without it
 
 
@@ -59,9 +66,26 @@ def motion(images):
 
 def judge(signs):
     """Best guess from the signs. Returns (state, why). States: taught name, 'loading', 'cutscene',
-    'gameplay', 'moving', 'menu or loading screen', 'still'."""
+    'gameplay', 'moving', 'menu or loading screen', 'still', 'frozen', 'paused'."""
     if signs.get("taught"):
         return signs["taught"], "matches a screen taught during setup"
+    if signs.get("hung"):
+        return "frozen", "Windows says the window has stopped answering"
+    still_all = signs["motion_anywhere"] == 0.0
+    cores, disk0 = signs.get("cpu_cores"), signs.get("disk_mb_s")
+    if still_all and signs.get("in_front", True) and cores is not None and cores >= FROZEN_BUSY_CORES and (disk0 or 0) < 1.0:
+        # 2026-11-04 (Village): a player standing still in gameplay, or a chapter card waiting for a key, looks exactly
+        # like this (still picture, no disk, 3-4 cores drawing the same frame) and the window answers. Only a poke that
+        # gets no answer, or Windows saying the window hangs (above), proves a freeze.
+        if signs.get("poke_answer") is not None and signs["poke_answer"] <= 0.0:
+            return "frozen", (f"nothing on screen changes, nothing is read from disk, a key press changed nothing, yet the game "
+                              f"keeps {cores:.1f} cores busy: stuck in a loop (a script or mod call that never returns is the "
+                              "usual cause)")
+        return "still", (f"nothing on screen changes and nothing is read from disk while the game keeps {cores:.1f} cores busy "
+                         "and the window answers: an idle player, or a screen waiting for a key; a frozen game looks the same "
+                         "until a poke (--poke KEY) gets no answer")
+    if still_all and signs.get("in_front") is False:
+        return "paused", "the window is not in front, and many games (every RE Engine one) pause until it is"
     disk = signs.get("disk_mb_s")
     avg, ever = signs["motion"], signs["motion_anywhere"]
     if disk is not None and disk >= DISK_LOADING_MB_S and avg < MOVING_SHARE:

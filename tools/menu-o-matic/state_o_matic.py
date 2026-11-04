@@ -21,23 +21,30 @@ from mom_run import say
 # ---- Settings ----------------------------------------------------------------
 LOOKS = 6                  # small captures per watch
 POKE_LOOKS = 4             # captures after the poke key
+FROZEN_RECHECK_S = 5.0     # a "frozen" verdict is only given if a second look this much later agrees
 
 
-def observe(hwnd, seconds, states=None, poke=None):
+def observe(hwnd, seconds, states=None, poke=None, _second=False):
     """Collect the signs and return (state, why, signs). Used by `watch` and by the replay engine."""
     import mom_window as W
+    if W.hung(hwnd):   # before any capture: capturing a window that does not answer can wait forever (RE3 2026-11-02)
+        return "frozen", "the window does not answer Windows (checked before looking at it)", {"hung": True}
     gap = seconds / max(1, LOOKS - 1)
-    read0, t0 = W.bytes_read(hwnd), time.time()
+    read0, cpu0, t0 = W.bytes_read(hwnd), W.cpu_seconds(hwnd), time.time()
     images = []
     for k in range(LOOKS):
         images.append(W.capture(hwnd))
         if k < LOOKS - 1:
             time.sleep(gap)
-    read1, t1 = W.bytes_read(hwnd), time.time()
+    read1, cpu1, t1 = W.bytes_read(hwnd), W.cpu_seconds(hwnd), time.time()
     avg, ever = S.motion(images)
     signs = {"letterbox": S.letterbox(images[-1]), "motion": round(avg, 3), "motion_anywhere": round(ever, 3)}
     if read0 is not None and read1 is not None and t1 > t0:
         signs["disk_mb_s"] = round((read1 - read0) / (t1 - t0) / 1e6, 1)
+    if cpu0 is not None and cpu1 is not None and t1 > t0:
+        signs["cpu_cores"] = round((cpu1 - cpu0) / (t1 - t0), 2)
+    signs["hung"] = W.hung(hwnd)
+    signs["in_front"] = W.in_front(hwnd)
     if states:
         for name, cp in states["checkpoints"].items():
             if R.matches(states, name, images[-1])[1]:
@@ -51,6 +58,17 @@ def observe(hwnd, seconds, states=None, poke=None):
             after.append(W.capture(hwnd))
         signs["poke_answer"] = round(S.motion(after)[0] - avg, 3)
     state, why = S.judge(signs)
+    if state == "frozen" and not signs.get("hung") and not _second:
+        # a load can sit still for a moment with the processor busy and no disk (RE2 2026-11-02 said "frozen" right at
+        # the end of a load): look again a few seconds later and only call it frozen if nothing changed in between
+        time.sleep(FROZEN_RECHECK_S)
+        again = W.capture(hwnd)
+        changed = S.motion([images[-1], again])[0]
+        state2, why2, signs2 = observe(hwnd, seconds, states, None, _second=True)
+        signs["recheck"] = {"changed_since": round(changed, 3), "state": state2}
+        if changed > 0 or state2 != "frozen":
+            return "busy (not frozen)", "it looked stuck, but the picture or the signs moved on within a few seconds (loading or thinking)", signs
+        why += f"; still the same {FROZEN_RECHECK_S:.0f} s later"
     return state, why, signs
 
 
