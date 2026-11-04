@@ -10,6 +10,8 @@ For any person or AI that can run a command and (only when needed) look at a pic
                                                                a crop of only what the key changed
     click  <window> x,y [--route FILE]                         left-click a point (fractions of the window);
                                                                optionally record it
+    wheel  <window> N [--at x,y] [--route FILE]                turn the mouse wheel N notches (negative = down) with
+                                                               the cursor at a point (default the middle)
     mark   <window> FILE NAME --region x,y,w,h [--note ..]     save a checkpoint (and a step that waits for it)
     check  <window> FILE NAME                                  does the screen match that checkpoint now?
     new    FILE --game G --window W --route R [--from S --to S]   start an empty route file; --from/--to name
@@ -174,6 +176,18 @@ def cmd_click(a):
         route["steps"].append({"click": point})
         R.save(route, a.route)
     say(event="click", at=point)
+
+
+def cmd_wheel(a):
+    import mom_window as W
+    hwnd = need_window(a.window)
+    at = R.parse_point(a.at) if a.at else (0.5, 0.5)
+    W.wheel(hwnd, a.clicks, *at)
+    if a.route:
+        route = R.load(a.route)
+        route["steps"].append({"wheel": a.clicks, "at": list(at)})
+        R.save(route, a.route)
+    say(event="wheel", clicks=a.clicks, at=list(at))
 
 
 def cmd_mark(a):
@@ -374,6 +388,8 @@ def register_common(sub):
     s.add_argument("--route"); s.add_argument("--changed"); s.set_defaults(f=cmd_press)
     s = sub.add_parser("click"); s.add_argument("window"); s.add_argument("point")
     s.add_argument("--route"); s.set_defaults(f=cmd_click)
+    s = sub.add_parser("wheel"); s.add_argument("window"); s.add_argument("clicks", type=int)
+    s.add_argument("--at"); s.add_argument("--route"); s.set_defaults(f=cmd_wheel)
     s = sub.add_parser("mark"); s.add_argument("window"); s.add_argument("route"); s.add_argument("name")
     s.add_argument("--region", required=True); s.add_argument("--note", default="")
     s.add_argument("--tol", type=float, default=R.DEFAULT_TOLERANCE)

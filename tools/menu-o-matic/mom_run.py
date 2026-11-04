@@ -5,6 +5,7 @@ Runs a route's steps in order:
     {"sleep": 2.0}                         wait
     {"key": "enter"}                       tap a key
     {"click": [x, y]}                      left-click at a point (fractions of the window)
+    {"wheel": N, "at": [x, y]}             turn the mouse wheel N notches (negative = down) at a point
     {"hold": ["w", "a"], "seconds": 1.5}   hold keys together (walk, drive, steer)          (Move-o-matiC)
     {"turn": [dx, dy]}                     move the mouse by dx, dy (turn the camera)        (Move-o-matiC)
     {"play": [[dt, key, 1|0], ...]}        replay what a person played, with its exact timing (setup mode)
@@ -180,6 +181,9 @@ def run_route(route, start, timeout, lost_dir):
         elif "click" in step:
             W.click(hwnd, *step["click"])
             say(event="click", step=i, at=step["click"])
+        elif "wheel" in step:
+            W.wheel(hwnd, step["wheel"], *step.get("at", [0.5, 0.5]))
+            say(event="wheel", step=i, clicks=step["wheel"], at=step.get("at", [0.5, 0.5]))
         elif "hold" in step:
             W.hold(step["hold"], step["seconds"], hwnd)
             say(event="hold", step=i, keys=step["hold"], seconds=step["seconds"])
