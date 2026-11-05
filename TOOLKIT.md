@@ -99,6 +99,11 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 - **Setup:** build from source with Rust (`cargo build --release`), then
   `claude mcp add --scope user ghidrust -- <path>/target/release/ghidrust.exe mcp`. See
   [`SETUP.md`](SETUP.md).
+- ⚠️ **Do not debug-attach it to a running game.** On Silent Hill 2 (2026-11-05) `process_attach` in debug
+  mode followed by `process_threads` froze the game for good, and `process_detach` did not let the threads
+  run again; only stopping `ghidrust.exe` freed the game. `[verified-live 2026-11-05, n=1]` For "where is
+  the game waiting" use [`waitstacks.py`](tools/waitstacks.py) instead; keep Ghidrust for reading files
+  with nothing running.
 
 ---
 
@@ -300,6 +305,14 @@ it without launching the game. Phase 0 and 3.
 
 ### `list-exports.ps1` — what a DLL or EXE exports
 Lists a PE file's exports, optionally filtered by a pattern. The quick first look before a proxy DLL.
+
+### `waitstacks.py` — where do the game's threads wait?
+A stack sampler that never freezes the game: every few milliseconds it pauses ONE named thread for well under
+a millisecond, reads its call stack, lets it go, and at the end lists the most common stacks per thread. A
+thread that is inside a wait in 40 % of its samples spends 40 % of the frame there. Use it instead of a
+debugger attach when a frame-time question needs an answer from a running game. Found the Silent Hill 2
+frame-time cause (a UEVR plugin rewriting a file six times a frame) on 2026-11-05. `--list` first on a new
+engine; the thread-name defaults are Unreal Engine's.
 
 ### `same-build.py` — is this the build we think it is?
 Says whether a deployed DLL or EXE was built from the same source as another one, so a test is never run
