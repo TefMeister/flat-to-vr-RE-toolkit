@@ -429,6 +429,25 @@ def register_common(sub):
     s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S); s.set_defaults(f=cmd_run)
 
 
+# The commands that press keys, click or turn: two of these from different sessions on one PC press into each
+# other's game. Inside the Lanes plugin, the clash guard (../clash.py) holds "menu" while one runs; elsewhere (the
+# toolkit copy) there is no guard and the command just runs.
+PRESSING = ("press", "click", "wheel", "record", "probe", "run", "hold", "turn")
+
+
+def keys_held(cmd):
+    import contextlib
+    guard = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "clash.py")
+    if cmd not in PRESSING or not os.path.isfile(guard):
+        return contextlib.nullcontext()
+    try:
+        sys.path.insert(0, os.path.dirname(guard))
+        import clash
+        return clash.hold("menu")
+    except Exception:
+        return contextlib.nullcontext()
+
+
 def main(doc=__doc__, extra=None):
     p = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -438,7 +457,8 @@ def main(doc=__doc__, extra=None):
     a = p.parse_args()
     import mom_window as W
     try:
-        a.f(a)
+        with keys_held(a.cmd):
+            a.f(a)
     except W.NotInFront as e:
         say(event="error", error=str(e))
         sys.exit(1)
