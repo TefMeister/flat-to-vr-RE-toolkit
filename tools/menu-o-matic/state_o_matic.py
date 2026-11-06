@@ -28,6 +28,7 @@ from mom_run import say
 LOOKS = 6                  # small captures per watch
 POKE_LOOKS = 4             # captures after the poke key
 FROZEN_RECHECK_S = 5.0     # a "frozen" verdict is only given if a second look this much later agrees
+ROUTES_LOOK_UP = 4         # how many folders up the clone root is looked for (copies of the routes repo)
 WATCH_SPARE_S = 15.0       # a watch that has not finished this long after its looks should have: the game is frozen
                            # (Run 5 D4, 2026-11-06: a suspended game made watch wait until it ran again)
 
@@ -46,28 +47,55 @@ def routes_folder():
     return ""
 
 
+def routes_copies(root):
+    """the routes folder and every other copy of the same repo beside it in the PC's other clone roots
+    (github-backups, github-backups-gu ...). Run 6 F18 (2026-11-06): lanes.conf named the /gu root's copy, which had
+    not been pulled since the screens were taught, so watch found nothing; the live copy had them."""
+    out = [root]
+    here = os.path.normpath(root)
+    for _level in range(ROUTES_LOOK_UP):           # the clone root may sit a few folders up (<root>/<repo>/routes)
+        parent, lane = os.path.split(here)
+        if not lane or not parent or parent == here:
+            break
+        rel = os.path.relpath(root, here)
+        stem = lane.split("-")[0]
+        try:
+            others = sorted(os.listdir(parent))
+        except OSError:
+            others = []
+        sib = [os.path.join(parent, o, rel) for o in others
+               if o != lane and o.split("-")[0] == stem and os.path.isdir(os.path.join(parent, o, rel))]
+        if sib:
+            return out + sib
+        here = parent
+    return out
+
+
 def find_states(window, game=None):
     """the states.json taught for this game: routes/<game>/states.json, or the one whose window matches (Run 5 D1:
-    watch did not find a game's taught screens unless told with --states)"""
+    watch did not find a game's taught screens unless told with --states). Every copy of the routes folder on this PC
+    is looked at, and the newest file wins."""
     root = routes_folder()
     if not root or not os.path.isdir(root):
         return None
-    if game:
-        p = os.path.join(root, game, "states.json")
-        return p if os.path.isfile(p) else None
+    found = []
     want = (window or "").lower()
-    for name in sorted(os.listdir(root)):
-        p = os.path.join(root, name, "states.json")
-        if not os.path.isfile(p):
-            continue
-        try:
-            with open(p, encoding="utf-8") as f:
-                w = (json.load(f).get("window") or "").lower()
-        except (OSError, ValueError):
-            continue
-        if w and (w in want or want in w):
-            return p
-    return None
+    for folder in routes_copies(root):
+        names = [game] if game else sorted(os.listdir(folder))
+        for name in names:
+            p = os.path.join(folder, name, "states.json")
+            if not os.path.isfile(p):
+                continue
+            if not game:
+                try:
+                    with open(p, encoding="utf-8") as f:
+                        w = (json.load(f).get("window") or "").lower()
+                except (OSError, ValueError):
+                    continue
+                if not (w and (w in want or want in w)):
+                    continue
+            found.append((os.path.getmtime(p), p))
+    return max(found)[1] if found else None
 
 
 def observe(hwnd, seconds, states=None, poke=None, _second=False):
@@ -130,7 +158,14 @@ def cmd_watch(a):
 
     def work():
         try:
-            hwnd = M.need_window(a.window)
+            # Found WITHOUT bringing it to the front (Run 6 F19, 2026-11-06): focusing restored a minimised game before
+            # the minimised check could see it, and pulled the game in front of whatever the person was doing. Only a
+            # poke (a key sent to the game) needs it in front.
+            import mom_window as W
+            hwnd = W.find_window(a.window) if not a.poke else M.need_window(a.window)
+            if not hwnd:
+                say(event="error", error=f"no visible window whose title contains {a.window!r}")
+                sys.exit(1)
             done["v"] = observe(hwnd, a.seconds, states, a.poke)
         except RuntimeError as e:   # e.g. "the window has no client area (minimised?)"
             done["v"] = ("minimised" if "client area" in str(e) else "unknown", str(e), {})
