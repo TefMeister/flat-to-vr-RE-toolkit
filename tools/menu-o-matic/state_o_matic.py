@@ -84,18 +84,19 @@ def find_states(window, game=None):
         names = [game] if game else sorted(os.listdir(folder))
         for name in names:
             p = os.path.join(folder, name, "states.json")
-            if not os.path.isfile(p):
-                continue
-            if not game:
-                try:
-                    with open(p, encoding="utf-8") as f:
-                        w = (json.load(f).get("window") or "").lower()
-                except (OSError, ValueError):
-                    continue
-                if not (w and (w in want or want in w)):
-                    continue
-            found.append((os.path.getmtime(p), p))
+            if os.path.isfile(p) and (game or window_matches(p, want)):
+                found.append((os.path.getmtime(p), p))
     return max(found)[1] if found else None
+
+
+def window_matches(path, want):
+    """does this states.json name a window that matches the one being watched?"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            w = (json.load(f).get("window") or "").lower()
+    except (OSError, ValueError):
+        return False
+    return bool(w and (w in want or want in w))
 
 
 def observe(hwnd, seconds, states=None, poke=None, _second=False):
