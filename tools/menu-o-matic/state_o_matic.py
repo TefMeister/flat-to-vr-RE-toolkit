@@ -1,6 +1,8 @@
 """State-o-matiC - what is the game doing right now: main menu, cutscene, gameplay, or loading?
 
-    watch <window> [--seconds 2] [--states FILE] [--poke KEY]   look for a moment and give a verdict with reasons
+    watch <window> [--seconds 2] [--states FILE] [--game G] [--poke KEY]   look for a moment and give a verdict
+                                                                with reasons; the game's taught screens are found
+                                                                in the routes folder by themselves (lanes.conf routes)
     teach <window> FILE STATE --region x,y,w,h [--note ..]      store a screen the person names ("main_menu",
                                                                 "gameplay"...) so watch can recognise it for sure
 
@@ -11,7 +13,11 @@ Screens taught with `teach` win over every other sign. Menu-o-matiC and Move-o-m
 lost, so the report says "loading" or "cutscene" instead of only "wrong screen". One JSON line out.
 """
 import argparse
+import json
+import os
+import re
 import sys
+import threading
 import time
 
 import mom_route as R
@@ -22,11 +28,55 @@ from mom_run import say
 LOOKS = 6                  # small captures per watch
 POKE_LOOKS = 4             # captures after the poke key
 FROZEN_RECHECK_S = 5.0     # a "frozen" verdict is only given if a second look this much later agrees
+WATCH_SPARE_S = 15.0       # a watch that has not finished this long after its looks should have: the game is frozen
+                           # (Run 5 D4, 2026-11-06: a suspended game made watch wait until it ran again)
+
+
+def routes_folder():
+    """`routes = <folder>` in lanes.conf (the per-game routes, with each game's states.json), or ''"""
+    path = os.environ.get("LANES_CONFIG") or os.path.join(os.path.expanduser("~"), ".claude", "lanes.conf")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.match(r"^\s*routes\s*=\s*(.*?)\s*(?:\s#.*)?$", line.rstrip("\r\n"))
+                if m:
+                    return os.path.expanduser(m.group(1).strip().strip('"'))
+    except OSError:
+        pass
+    return ""
+
+
+def find_states(window, game=None):
+    """the states.json taught for this game: routes/<game>/states.json, or the one whose window matches (Run 5 D1:
+    watch did not find a game's taught screens unless told with --states)"""
+    root = routes_folder()
+    if not root or not os.path.isdir(root):
+        return None
+    if game:
+        p = os.path.join(root, game, "states.json")
+        return p if os.path.isfile(p) else None
+    want = (window or "").lower()
+    for name in sorted(os.listdir(root)):
+        p = os.path.join(root, name, "states.json")
+        if not os.path.isfile(p):
+            continue
+        try:
+            with open(p, encoding="utf-8") as f:
+                w = (json.load(f).get("window") or "").lower()
+        except (OSError, ValueError):
+            continue
+        if w and (w in want or want in w):
+            return p
+    return None
 
 
 def observe(hwnd, seconds, states=None, poke=None, _second=False):
     """Collect the signs and return (state, why, signs). Used by `watch` and by the replay engine."""
+    import ctypes
     import mom_window as W
+    if os.name == "nt" and ctypes.windll.user32.IsIconic(hwnd):
+        # Run 5 D2: a minimised window has no picture to look at, and watch stopped with an error
+        return "minimised", "the window is minimised, so there is nothing on screen to judge (not in front)", {"minimised": True}
     if W.hung(hwnd):   # before any capture: capturing a window that does not answer can wait forever (RE3 2026-11-02)
         return "frozen", "the window does not answer Windows (checked before looking at it)", {"hung": True}
     gap = seconds / max(1, LOOKS - 1)
@@ -74,10 +124,33 @@ def observe(hwnd, seconds, states=None, poke=None, _second=False):
 
 def cmd_watch(a):
     import menu_o_matic as M
-    hwnd = M.need_window(a.window)
-    states = R.load(a.states) if a.states else None
-    state, why, signs = observe(hwnd, a.seconds, states, a.poke)
-    say(event="state", state=state, why=why, signs=signs)
+    states_file = a.states or find_states(a.window, a.game)
+    states = R.load(states_file) if states_file else None
+    done = {}
+
+    def work():
+        try:
+            hwnd = M.need_window(a.window)
+            done["v"] = observe(hwnd, a.seconds, states, a.poke)
+        except RuntimeError as e:   # e.g. "the window has no client area (minimised?)"
+            done["v"] = ("minimised" if "client area" in str(e) else "unknown", str(e), {})
+        except BaseException as e:  # noqa: BLE001 - reported below, never a crash
+            done["e"] = e
+
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    limit = a.seconds * 2 + FROZEN_RECHECK_S + WATCH_SPARE_S
+    t.join(limit)
+    if t.is_alive():
+        say(event="state", state="frozen", why=f"looking at the window did not finish within {limit:.0f} s: the game "
+                                               f"is not answering at all (stopped or frozen)", signs={"timed_out": True},
+            states=states_file or "")
+        sys.stdout.flush()
+        os._exit(0)
+    if "e" in done:
+        raise done["e"]
+    state, why, signs = done["v"]
+    say(event="state", state=state, why=why, signs=signs, states=states_file or "")
 
 
 def cmd_teach(a):
@@ -101,7 +174,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("watch"); s.add_argument("window"); s.add_argument("--seconds", type=float, default=2.0)
-    s.add_argument("--states"); s.add_argument("--poke"); s.set_defaults(f=cmd_watch)
+    s.add_argument("--states"); s.add_argument("--poke"); s.add_argument("--game")
+    s.set_defaults(f=cmd_watch)
     s = sub.add_parser("teach"); s.add_argument("window"); s.add_argument("file"); s.add_argument("state")
     s.add_argument("--region", required=True); s.add_argument("--note", default=""); s.add_argument("--game")
     s.set_defaults(f=cmd_teach)
