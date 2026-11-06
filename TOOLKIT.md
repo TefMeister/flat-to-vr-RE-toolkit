@@ -314,6 +314,23 @@ debugger attach when a frame-time question needs an answer from a running game. 
 frame-time cause (a UEVR plugin rewriting a file six times a frame) on 2026-11-05. `--list` first on a new
 engine; the thread-name defaults are Unreal Engine's.
 
+### `xr-refused.py` — did the headset actually take the frames?
+Reads a VR mod's log (`--uevr <game>` reads UEVR's own) and says whether the OpenXR runtime refused frames
+(`xrEndFrame` / `xrBeginFrame` / `xrWaitFrame` failing). **A refused frame never reaches the headset, so it costs
+less: a run whose frames are refused always looks FASTER.** Run it on every run a frame time is read from, with
+`--from` / `--to` for the measuring window. `REFUSED` (exit 3) means the number is not a speed result; `STARTUP
+BLIP` (exit 4) is the usual few frames refused while a session starts, and frame times after it are real.
+Silent Hill 2, 2026-11-06: UEVR's "Early" sync read 11.2 ms in the OpenXR Simulator and 9.7 ms on Virtual Desktop,
+and on Virtual Desktop every frame was refused (`XR_ERROR_SWAPCHAIN_RECT_INVALID`, black headset) `[verified-live
+2026-11-06, n=1]`.
+
+⚠️ **The simulator is not every headset.** It cannot copy a runtime's own quirks, and UEVR takes a Virtual
+Desktop-only path (an extra layer) whenever it sees Virtual Desktop running, which the simulator never triggers
+`[inferred-static 2026-11-06, UEVR source]`. So a setting found faster on the simulator that changes how the game
+talks to the headset (sync mode, layers, swapchain sizes) is checked once on the real headset, with this tool,
+before it goes into a build anyone else gets. The simulator's own frame checks arrived in its 1.6.0; older copies
+check nothing (the dev PC had 1.5.x until 2026-11-06).
+
 ### `same-build.py` — is this the build we think it is?
 Says whether a deployed DLL or EXE was built from the same source as another one, so a test is never run
 against a stale copy by mistake.
