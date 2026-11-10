@@ -41,6 +41,17 @@ When one of these fits, it collapses Phases 1 and 5–6 into configuration.
 - **Proven on:** studied as reference for XIII (UE2) and Enslaved (UE3), where it
   cannot attach; see the PLAYBOOK appendix for the reuse/ignore split.
 
+### uevr-mcp (UEVR-MCP) — elliotttate
+- **Link:** https://github.com/elliotttate/uevr-mcp
+- **What:** A UEVR plugin plus a connector that lets an AI assistant look inside a running Unreal Engine 4.22 to
+  5.5 game: every object and function live, Lua run inside the game, the headset's and controllers' poses,
+  screenshots, and hooks that log what the game calls.
+- **Why we use it:** It answers questions about a running Unreal game in seconds that used to take a debugger
+  session. The Lanes plugin installs it on a yes (`engine-mcp.py install uevr`).
+- **Proven on:** Silent Hill 2 (2024 remake) with UEVR, in use since 2026-10. One thing to know (found
+  2026-11-05): the 1.0.0 release rewrites a small file about six times a frame, which cost about 7 ms a frame
+  there; the maker has fixed it on the main branch, so build from source or use a release newer than 1.0.0.
+
 ---
 
 ## Injection & hooking (Phase 1 foothold, Phase 3–4 overrides)
@@ -349,8 +360,8 @@ scripted sequence on one.
 
 ## Our apps (each in its own repo)
 
-Desktop apps and layers we built for our own VR work. The four helper windows (Hand Freeze, Hand Poser,
-Grip Zones, Window View) are made to be used together from inside the headset.
+Desktop apps and layers we built for our own VR work. The helper windows (Hand Freeze, Hand Poser, Grip Zones,
+Gun Poser, Animation & Timing, Window View) are made to be used together from inside the headset.
 
 ### Hand Freeze — hold the VR controllers still, in any OpenXR game
 - **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v4, the right-stick click)
@@ -378,6 +389,22 @@ Grip Zones, Window View) are made to be used together from inside the headset.
   position and size, moved live on the gun in the game, per gun or for all guns. One list of the gun's own zones;
   the spheres show by themselves as the left hand comes near. Made to be used inside the headset through Window View.
 - **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01); still being tuned in the headset.
+
+### Gun Poser — aim and move the gun in your hand, per gun
+- **Link:** https://github.com/TefMeister/gun-poser-vr (releases)
+- **What:** A small desktop window with six sliders for the gun in the right hand: aim it up or down, left or
+  right, roll it, and move it forward, up or sideways in the hand, live in the game; tick ALL GUNS to set what every
+  gun starts from. It writes the same numbers as Grip Zones' "gun in the right hand" entry, so the two always agree.
+  Made to be used inside the headset through Window View. For now for Visceral RE8 (Resident Evil Village VR) only.
+- **Status:** built and tried on a test folder (2026-10-28); not yet tried in the headset.
+
+### Animation & Timing — freeze, step and nudge the player's animations
+- **Link:** https://github.com/TefMeister/animation-timing-vr
+- **What:** A desktop window plus one REFramework script, in Hand Poser's family, for RE Engine games. Hand Poser
+  holds a joint still; this one works on motion: freeze the animation playing on the player, step it a frame at a
+  time, run it in slow motion, turn a joint on top of it and keep that turn on a frame. With Visceral RE8 it also
+  edits the mod's own finger movements and timings frame by frame.
+- **Status:** built and checked against a stand-in game and its self-test (2026-11-07); not yet tried on a real game.
 
 ### Window View — your desktop windows inside any OpenXR game
 - **Link:** https://github.com/TefMeister/window-view-vr
