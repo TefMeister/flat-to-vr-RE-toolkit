@@ -192,6 +192,29 @@ with tempfile.TemporaryDirectory() as tmp:
 # KNOWN.md: what a game has taught us
 import datetime
 import mom_known as K
+# 2026-11-10: a bare game name goes under the routes folder, never into the current folder
+_keep = (os.environ.get("LANES_ROUTES"), os.environ.get("LANES_CONFIG"), os.getcwd())
+with tempfile.TemporaryDirectory() as rt, tempfile.TemporaryDirectory() as here:
+    os.chdir(here)
+    os.environ["LANES_ROUTES"] = os.path.join(rt, "routes")
+    check("known: a bare name goes under the routes folder", K.resolve("some-game") == os.path.join(rt, "routes", "some-game"))
+    K.add(K.resolve("some-game"), "Hazards", "a test line")
+    check("known: --add with a bare name writes into the routes folder",
+          os.path.isfile(os.path.join(rt, "routes", "some-game", "KNOWN.md")) and not os.path.exists("some-game"))
+    check("known: a path is used as given", K.resolve(os.path.join(here, "x")) == os.path.join(here, "x"))
+    os.environ.pop("LANES_ROUTES")
+    os.environ["LANES_CONFIG"] = os.path.join(here, "none.conf")       # no routes folder known
+    try:
+        K.resolve("some-game")
+        check("known: a bare name with no routes folder is refused", False)
+    except ValueError:
+        check("known: a bare name with no routes folder is refused", not os.path.exists("some-game"))
+    os.makedirs("old-game")
+    open(os.path.join("old-game", "KNOWN.md"), "w").close()
+    check("known: ...unless it already is a route folder here", K.resolve("old-game") == "old-game")
+    os.chdir(_keep[2])
+for _k, _v in zip(("LANES_ROUTES", "LANES_CONFIG"), _keep[:2]):
+    os.environ.pop(_k, None) if _v is None else os.environ.__setitem__(_k, _v)
 with tempfile.TemporaryDirectory() as tmp:
     folder = os.path.join(tmp, "routes", "some-game")
     body = K.ensure(folder)

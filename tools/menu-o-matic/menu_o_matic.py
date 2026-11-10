@@ -367,12 +367,13 @@ def cmd_routes(a):
 def cmd_known(a):
     """Print what this game has taught us and its route map, or add one dated line to it."""
     import mom_known as K
-    if a.add:
-        try:
+    try:
+        a.folder = K.resolve(a.folder)
+        if a.add:
             K.add(a.folder, a.add[0], a.add[1])
-        except ValueError as e:
-            say(event="error", error=str(e))
-            sys.exit(1)
+    except ValueError as e:
+        say(event="error", error=str(e))
+        sys.exit(1)
     print(K.ensure(a.folder), flush=True)
     say(event="known", folder=a.folder, file=K.path_of(a.folder), added=bool(a.add))
     cmd_routes(a)

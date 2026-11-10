@@ -148,6 +148,7 @@ step), so a loading screen that is slower than usual is fine. While it waits, it
 | The whole picture did not change at all for 30 s or more | `lost`: "frozen: the whole picture has not changed for N s" | 2 |
 | The game window closed in the middle (a crash, or it quit) | `gone`, straight away, without waiting out the time limit | 3 |
 | The game never opened a window after launching (4 minutes by default) | `gone`: "it did not start, or it crashed while starting" | 3 |
+| A launch step finds the route's `"exe"` still running with no window (a copy still closing) for a minute | `gone`: "still running ... a second copy was not started" (2026-11-10) | 3 |
 | Windows marked the game "Not Responding" for a whole minute | `not_responding` | 4 |
 
 A frozen picture never cuts a wait short, because some loading screens really are still pictures; it only explains
@@ -215,7 +216,9 @@ the menu screens and the button that gets past each, the controls that work (hel
 spot, the hazards (walls, intro videos, "keep these settings?" countdowns), what failed, and ideas for the tool.
 
 - **Before the game starts:** `known <folder>` prints KNOWN.md and the route map. It makes KNOWN.md from a
-  template the first time.
+  template the first time. `<folder>` may be the game's name alone (`known tale-of-two-wastelands`): it is looked up
+  in the routes folder (`routes =` in lanes.conf, or `LANES_ROUTES`), never made in the current folder; with no
+  routes folder known, a bare name is refused (2026-11-10: one put a stray game folder on the Desktop).
 - **The moment something new is learned:** `known <folder> --add Hazards "the intro video only skips with Esc"`
   adds a dated line under that section. Fix a route that broke in the same session.
 - **When the tool itself was missing something** (a kind of input, a check, a way to recover), note it under

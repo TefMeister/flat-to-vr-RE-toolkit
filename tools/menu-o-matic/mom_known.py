@@ -7,6 +7,11 @@ how to reach gameplay, and adds every new thing the same session it learns it, s
 to drive than it found it.
 
     known FOLDER                       print KNOWN.md (made from the template if missing) and the route map
+
+FOLDER is the game's routes folder, or just its name ("tale-of-two-wastelands"): a bare name is looked up in the
+routes folder (LANES_ROUTES, else `routes =` in lanes.conf), never made in the current folder (2026-11-10: a bare
+name put a stray game folder on the Desktop). With no routes folder known, a bare name that is not already a route
+folder here is refused.
     known FOLDER --add SECTION "TEXT"  add one dated line under a section (Menus, Controls, Save spot, Hazards,
                                        What failed, Tool ideas)
 
@@ -26,6 +31,40 @@ def template(game):
     for s in SECTIONS:
         lines += [f"## {s}", ""]
     return "\n".join(lines)
+
+
+def routes_root():
+    """The routes folder: LANES_ROUTES, else `routes =` in lanes.conf (LANES_CONFIG, ~/.claude, ~/.config/lanes)."""
+    if os.environ.get("LANES_ROUTES"):
+        return os.environ["LANES_ROUTES"]
+    home = os.path.expanduser("~")
+    confs = [os.environ["LANES_CONFIG"]] if os.environ.get("LANES_CONFIG") else \
+        [os.path.join(home, ".claude", "lanes.conf"), os.path.join(home, ".config", "lanes", "lanes.conf")]
+    for path in confs:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    key, sep, value = line.partition("=")
+                    if sep and key.strip() == "routes" and not line.lstrip().startswith("#"):
+                        return value.split(" #")[0].strip().strip('"').strip("'")
+        except OSError:
+            pass
+    return ""
+
+
+def resolve(folder):
+    """The folder KNOWN.md belongs in. A path (with a slash, absolute, or starting with '.') is used as given. A bare
+    name goes under the routes folder; with none known, it is used only if it is already a route folder here (has
+    KNOWN.md or a route file), else ValueError: a typo or a stray name never makes a new folder in the current one."""
+    if os.path.isabs(folder) or "/" in folder or "\\" in folder or folder.startswith("."):
+        return folder
+    root = routes_root()
+    if root:
+        return os.path.join(root, folder)
+    if os.path.isdir(folder) and any(n == FILE_NAME or n.endswith(".json") for n in os.listdir(folder)):
+        return folder
+    raise ValueError(f"{folder!r} is a bare game name and no routes folder is known: give the game's routes folder "
+                     "itself, or set `routes =` in lanes.conf (LANES_ROUTES for one command)")
 
 
 def path_of(folder):

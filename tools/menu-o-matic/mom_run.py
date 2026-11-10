@@ -27,6 +27,7 @@ POLL_S = 0.5                 # how often a wait re-checks its checkpoint
 DEFAULT_WAIT_TIMEOUT_S = 90  # loading screens can be long
 WINDOW_TIMEOUT_S = 240       # after a launch step
 LAUNCH_SETTLE_S = 2.0        # after the window appears, before the first key
+GAME_GONE_WAIT_S = 60        # a launch waits this long for the last copy of the route's "exe" to close (2026-11-10)
 HUNG_GIVE_UP_S = 60          # 'Not Responding' this long in a row = give up (games do hang briefly while loading)
 FROZEN_S = 30                # a timeout with the picture unchanged this long is reported as "frozen"
 EXIT_LOST, EXIT_GONE, EXIT_HUNG = 2, 3, 4
@@ -130,6 +131,16 @@ def run_route(route, start, timeout, lost_dir):
             if hwnd:
                 say(event="skip", step=i, why="window already open")
                 continue
+            # a copy still closing from the last run has no window but is still there: never start a second one
+            # beside it (2026-11-10, two FalloutNV.exe at once, neither answering a close). Needs the route's "exe".
+            if W.EXE:
+                end, pids = time.time() + GAME_GONE_WAIT_S, W.running(W.EXE)
+                while pids and time.time() < end:
+                    time.sleep(1.0)
+                    pids = W.running(W.EXE)
+                if pids:
+                    gone(i, f"{W.EXE} is still running (process {', '.join(map(str, pids))}) with no window after "
+                            f"{GAME_GONE_WAIT_S} s: close it first; a second copy was not started")
             os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
             # "wait_for": a window that appears BEFORE the game's own (a launcher dialog); the game window is
             # then looked up again at the next step

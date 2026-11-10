@@ -108,6 +108,19 @@ def program_of(hwnd):
         kernel32.CloseHandle(handle)
 
 
+def running(exe):
+    """Process ids of every running program with this file name ("FalloutNV.exe"); tasklist, no extra packages."""
+    import subprocess
+    name = exe.replace("/", "\\").rsplit("\\", 1)[-1]
+    r = subprocess.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
+    pids = []
+    for line in r.stdout.splitlines():
+        cells = [c.strip('"') for c in line.split('","')]
+        if len(cells) > 1 and cells[0].lower() == name.lower() and cells[1].isdigit():
+            pids.append(int(cells[1]))
+    return pids
+
+
 def missing(title_part, exe=None):
     """The plain line for a window that was not found, naming the windows refused for being another program."""
     exe = EXE if exe is None else exe
