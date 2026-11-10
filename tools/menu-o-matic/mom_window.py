@@ -81,13 +81,59 @@ class BITMAPINFOHEADER(ctypes.Structure):
                 ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", w.DWORD), ("biClrImportant", w.DWORD)]
 
 
-def find_window(title_part):
+# The game's program (2026-11-10). On the home PC `look "Fallout"` took a picture of the chat program, open on a thread
+# called "Fallout 3/NV VR | ...", and sent the quit keys at it: the game's own window was titled "New Vegas Tick Fix"
+# at that moment. With EXE set ("FalloutNV.exe", from --exe or a route's "exe"), only that program's windows count,
+# and a window of another program with the right words in its title is refused by name (REFUSED, below).
+EXE = ""
+REFUSED = []        # (title, program) of the windows the last find_window turned down for being another program
+
+
+def program_of(hwnd):
+    """The file name of the program that owns the window ("falloutnv.exe"), lower case, or "" if Windows won't say."""
+    kernel32 = ctypes.windll.kernel32
+    pid = w.DWORD()
+    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    kernel32.OpenProcess.restype = w.HANDLE
+    handle = kernel32.OpenProcess(0x1000, False, pid.value)   # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return ""
+    try:
+        buf = ctypes.create_unicode_buffer(1024)
+        size = w.DWORD(1024)
+        if not kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
+            return ""
+        return buf.value.replace("/", "\\").rsplit("\\", 1)[-1].lower()
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def missing(title_part, exe=None):
+    """The plain line for a window that was not found, naming the windows refused for being another program."""
+    exe = EXE if exe is None else exe
+    if REFUSED:
+        t, prog = REFUSED[0]
+        more = f" (and {len(REFUSED) - 1} more)" if len(REFUSED) > 1 else ""
+        return (f"the window {t!r} belongs to {prog or 'a program Windows would not name'}, not {exe}{more}; "
+                "nothing was sent to it")
+    if title_part.lower().endswith(".exe"):
+        return f"no visible window of the program {title_part}"
+    return f"no visible window whose title contains {title_part!r}" + (f" of the program {exe}" if exe else "")
+
+
+def find_window(title_part, exe=None):
     """First visible top-level window whose title contains `title_part` (case-insensitive), or None.
-    A title starting with '=' must match exactly (case-insensitive): '=MANHUNT' is the game, not 'Manhunt launcher'."""
+    A title starting with '=' must match exactly (case-insensitive): '=MANHUNT' is the game, not 'Manhunt launcher'.
+    A title ending in '.exe' is a program name alone: any window of that program. `exe` (default: EXE) keeps only
+    the windows of that program; pass "" for a window of any program (a launcher dialog)."""
+    exe = (EXE if exe is None else exe).lower()
+    if title_part.lower().endswith(".exe") and not title_part.startswith("="):
+        exe, title_part = title_part.lower(), ""
     exact = title_part.startswith("=")
     if exact:
         title_part = title_part[1:]
     found = []
+    del REFUSED[:]
 
     @ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
     def cb(hwnd, _):
@@ -98,7 +144,11 @@ def find_window(title_part):
                 u.GetWindowTextW(hwnd, buf, n + 1)
                 t = buf.value.lower()
                 if (t == title_part.lower()) if exact else (title_part.lower() in t):
-                    found.append(hwnd)
+                    prog = program_of(hwnd) if exe else ""
+                    if exe and prog != exe:
+                        REFUSED.append((buf.value, prog))
+                    else:
+                        found.append(hwnd)
         return True
 
     u.EnumWindows(cb, 0)
@@ -113,11 +163,11 @@ def find_window(title_part):
     return max(found, key=area)
 
 
-def wait_window(title_part, timeout_s):
+def wait_window(title_part, timeout_s, exe=None):
     """Poll for the window; returns its handle or None after `timeout_s`."""
     end = time.time() + timeout_s
     while time.time() < end:
-        hwnd = find_window(title_part)
+        hwnd = find_window(title_part, exe)
         if hwnd:
             return hwnd
         time.sleep(1.0)
@@ -225,7 +275,7 @@ def _send(scan, extended, up):
 def click_button(dialog_title, button_text):
     """Press a button in an ordinary Windows dialog (a game's launcher 'Play' button) with BM_CLICK: no mouse,
     no focus needed. Returns True if the button was found."""
-    dlg = find_window(dialog_title)
+    dlg = find_window(dialog_title, exe="")      # a launcher is often a program of its own
     if not dlg:
         return False
     found = []

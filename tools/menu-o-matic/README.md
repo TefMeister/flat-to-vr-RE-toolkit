@@ -76,6 +76,13 @@ First game with a map: Prototype, 2026-09-29 (closed → gameplay 62 s, closed �
 - **Keys that SendInput never reaches.** Some games only read keyboard *window messages*. A route's `"key_input"` picks the delivery: `"sendinput"` (default), `"post"` (PostMessage WM_KEYDOWN/WM_KEYUP to the game window) or `"both"`. The recorder is unaffected: the person's real keyboard reaches every game.
 - **A launcher dialog before the game.** `add FILE --button Play --dialog "Manhunt launcher"` presses the button with BM_CLICK (no mouse, no focus; ANSI dialogs are read correctly). Give the launch step `"wait_for": "<launcher title>"` so it waits for the dialog rather than the game window.
 - **Two windows with the same name.** A window title starting with `=` must match exactly: `=MANHUNT` is the game, not "Manhunt launcher".
+- **Another program with the game's name in its title** (2026-11-10, Fallout: New Vegas). A chat program open on a thread
+  called "Fallout 3/NV VR | ..." matched `look "Fallout"` while the game's own window was titled "New Vegas Tick Fix"; the
+  picture and the quit keys went to the chat window. Give the game's program: `--exe FalloutNV.exe` on any command, or
+  `"exe": "FalloutNV.exe"` in the route file (`new ... --exe FalloutNV.exe` writes it). Then only that program's windows
+  count, and a window of another program with the right words is refused by name ("the window 'Fallout 3/NV VR | ...'
+  belongs to discord.exe, not FalloutNV.exe; nothing was sent to it"). The window may also be the program name alone:
+  `look FalloutNV.exe out.png`. A launcher dialog (`--dialog`, `"wait_for"`) is still found by title, whatever program.
 - **A game whose own exit is closing its window.** `{"close": true}` sends WM_CLOSE and waits for it to go; never a kill.
 
 Manhunt, recorded with the player on the keyboard: closed game → playing in 22-25 s, twice, every checkpoint matched.
@@ -178,6 +185,8 @@ the game stopped responding, and **1** for anything else (see "When things go wr
 - **Keys only ever go to the named window.** Before every key and every picture the tool brings the window to the
   front, and if Windows refuses, it sends nothing and stops with an error. (On the day it was built, a plain "bring to
   front" failed once and a key landed in a web browser instead; that is why.)
+- **With the game's program named (`--exe`, or `"exe"` in the route), no window of another program is ever taken**,
+  however well its title matches (2026-11-10).
 - **Nothing is deleted or changed in the game.** The tool only presses keys and reads the screen.
 - A checkpoint matches only when the patch is close on average **and** no single spot differs a lot, so one changed
   digit ("Col 2" against "Col 3") is enough to tell two screens apart.
@@ -214,6 +223,11 @@ spot, the hazards (walls, intro videos, "keep these settings?" countdowns), what
 - Only game facts go in it: route folders are often shared publicly.
 
 ## Tests
+
+`python test_menu_o_matic.py` checks the route logic with no window. `python test_window_program.py` opens two small
+windows of its own for a few seconds, both with "Fallout" in the title, the wrong program's in front and bigger, and
+checks that `--exe` takes the right one, refuses the wrong one by name, and sends it no key (16 checks, all pass,
+2026-11-10).
 
 **First game set up together: Burnout Paradise, 2026-09-28.** The player played from launch to driving in the city
 once while it recorded; the recording showed what guessing had missed ("Press Any Button" appears a moment after the

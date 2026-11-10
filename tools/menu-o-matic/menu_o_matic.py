@@ -42,6 +42,10 @@ For any person or AI that can run a command and (only when needed) look at a pic
     run    FILE [FILE ..] [--from N] [--lost-dir DIR] [--timeout S]  replay one or more routes in a row;
                                                                stops at the first checkpoint that does not match
 
+<window> is a part of the window's title ("=TITLE" for the exact title), or the program alone ("FalloutNV.exe").
+Every command also takes --exe PROGRAM (or the route file's "exe"): then a window of any other program is refused,
+however well its title matches (2026-11-10: a chat thread called "Fallout 3/NV VR" was taken for the game).
+
 Regions are fractions of the window (x,y,width,height), so a route recorded in one window size replays in
 another. Exit codes: 0 done; 2 lost (the checkpoint never matched: the JSON says whether the picture was
 frozen or just different); 3 the game window closed, crashed or never opened; 4 Windows reported the game
@@ -56,6 +60,7 @@ HOW TO SPEND LITTLE (the point of the tool; see README.md):
   4. `mark` each screen as you reach it. Next time, `run` replays everything with no pictures at all.
 """
 import argparse
+import json
 import os
 import sys
 import time
@@ -72,7 +77,7 @@ def need_window(title):
     import mom_window as W
     hwnd = W.find_window(title)
     if not hwnd:
-        say(event="error", error=f"no visible window whose title contains {title!r}")
+        say(event="error", error=W.missing(title))
         sys.exit(1)
     if not W.focus(hwnd):
         say(event="error", error="the window could not be brought to the front; nothing was sent")
@@ -105,7 +110,7 @@ def cmd_windowcheck(a):
     import mom_window as W
     hwnd = W.find_window(a.window)
     if not hwnd:
-        say(event="error", error=f"no visible window whose title contains {a.window!r}")
+        say(event="error", error=W.missing(a.window))
         sys.exit(1)
     v = window_verdict(hwnd)
     route = R.load(a.route) if a.route else None
@@ -214,7 +219,7 @@ def cmd_new(a):
     if os.path.exists(a.route):
         say(event="error", error=f"{a.route} already exists")
         sys.exit(1)
-    route = R.new_route(a.game, a.window, a.name)
+    route = R.new_route(a.game, a.window, a.name, exe=a.exe or "")
     route["from"], route["to"] = a.start_state, a.end_state      # a MAP of the game: routes join end to start
     R.save(route, a.route)
     say(event="new", route=a.route, start=a.start_state, end=a.end_state)
@@ -448,14 +453,43 @@ def keys_held(cmd):
         return contextlib.nullcontext()
 
 
+def add_exe_option(sub):
+    """--exe PROGRAM on every command (2026-11-10): only that program's windows are taken."""
+    for s in sub.choices.values():
+        s.add_argument("--exe", default=None,
+                       help="the game's program, e.g. FalloutNV.exe: a window of any other program is refused")
+
+
+def set_exe(a):
+    """The program to hold windows to: --exe, else the "exe" of the route file the command names (if any)."""
+    import mom_window as W
+    exe = getattr(a, "exe", None)
+    if not exe:
+        for name in ("route", "routes", "file", "states"):
+            v = getattr(a, name, None)
+            for path in (v if isinstance(v, list) else [v]):
+                if isinstance(path, str) and path.endswith(".json") and os.path.isfile(path):
+                    try:
+                        exe = json.load(open(path, encoding="utf-8")).get("exe") or ""
+                    except (OSError, ValueError):
+                        exe = ""
+                    if exe:
+                        break
+            if exe:
+                break
+    W.EXE = exe or ""
+
+
 def main(doc=__doc__, extra=None):
     p = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     register_common(sub)
     if extra:
         extra(sub)
+    add_exe_option(sub)
     a = p.parse_args()
     import mom_window as W
+    set_exe(a)
     try:
         with keys_held(a.cmd):
             a.f(a)

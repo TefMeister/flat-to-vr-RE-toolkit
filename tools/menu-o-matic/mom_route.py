@@ -151,8 +151,12 @@ def parse_point(text):
 
 
 # ---- Route files ---------------------------------------------------------------
-def new_route(game, window, name):
-    return {"schema": SCHEMA, "game": game, "window": window, "route": name, "steps": [], "checkpoints": {}}
+def new_route(game, window, name, exe=""):
+    """`exe`: the game's program (FalloutNV.exe); with it, a replay never takes a window of another program."""
+    route = {"schema": SCHEMA, "game": game, "window": window, "route": name, "steps": [], "checkpoints": {}}
+    if exe:
+        route["exe"] = exe
+    return route
 
 
 def load(path):

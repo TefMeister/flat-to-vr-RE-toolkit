@@ -165,7 +165,7 @@ def cmd_watch(a):
             import mom_window as W
             hwnd = W.find_window(a.window) if not a.poke else M.need_window(a.window)
             if not hwnd:
-                say(event="error", error=f"no visible window whose title contains {a.window!r}")
+                say(event="error", error=W.missing(a.window))
                 sys.exit(1)
             done["v"] = observe(hwnd, a.seconds, states, a.poke)
         except RuntimeError as e:   # e.g. "the window has no client area (minimised?)"
@@ -215,8 +215,11 @@ def main():
     s = sub.add_parser("teach"); s.add_argument("window"); s.add_argument("file"); s.add_argument("state")
     s.add_argument("--region", required=True); s.add_argument("--note", default=""); s.add_argument("--game")
     s.set_defaults(f=cmd_teach)
+    import menu_o_matic as M
+    M.add_exe_option(sub)
     a = p.parse_args()
     import mom_window as W
+    M.set_exe(a)
     try:
         a.f(a)
     except W.NotInFront as e:

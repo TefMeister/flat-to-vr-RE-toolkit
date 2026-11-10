@@ -121,6 +121,7 @@ def wait_for(route, i, step, hwnd, timeout, lost_dir):
 def run_route(route, start, timeout, lost_dir):
     import mom_window as W
     W.KEY_MODE = route.get("key_input", "sendinput")     # how this game takes keys (mom_window.KEY_MODE)
+    W.EXE = route.get("exe") or W.EXE                    # the game's program, if the route names it
     hwnd = W.find_window(route["window"])
     for i, step in enumerate(route["steps"]):
         if i < start:
@@ -132,7 +133,8 @@ def run_route(route, start, timeout, lost_dir):
             os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
             # "wait_for": a window that appears BEFORE the game's own (a launcher dialog); the game window is
             # then looked up again at the next step
-            hwnd = W.wait_window(step.get("wait_for") or route["window"], step.get("timeout") or WINDOW_TIMEOUT_S)
+            hwnd = W.wait_window(step.get("wait_for") or route["window"], step.get("timeout") or WINDOW_TIMEOUT_S,
+                                 exe="" if step.get("wait_for") else None)   # a launcher may be another program
             if not hwnd:
                 gone(i, f"no game window within {step.get('timeout') or WINDOW_TIMEOUT_S} s: it did not start, "
                         "or it crashed while starting")
