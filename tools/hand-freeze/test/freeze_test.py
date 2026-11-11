@@ -66,7 +66,7 @@ def main():
 
     import glfw
     import xr
-    from OpenGL import GL, WGL
+    from OpenGL import WGL
     from xr.utils import SessionStateManager
 
     layers = [l.layer_name.decode() if isinstance(l.layer_name, bytes) else l.layer_name
