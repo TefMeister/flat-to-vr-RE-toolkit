@@ -301,8 +301,9 @@ plus small screen checkpoints compared by numbers, so a replay looks at nothing 
 appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorded route; State-o-matiC knows
 which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
 live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
-Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty games so far, among
-them Hard Reset, Alice: Madness Returns, Mad Max and Resident Evil Village.
+Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty-three games so far
+(2026-11-11), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness and
+Tale of Two Wastelands.
 
 ### Shader readers: `d3d9-ctab.py`, `dxbc-reflect.py`, `dxbc-usage.py`
 Read a compiled shader's own description of itself out of any file (game archive, memory dump, capture):
@@ -426,9 +427,11 @@ Gun Poser, Animation & Timing, Window View) are made to be used together from in
 - **Link:** https://github.com/TefMeister/BeG0nE
 - **What:** Recorders a mod wires in, plus readers that turn each headset test into a short report: Camera
   Jitter (stepped, jittery camera; finds rate faults), Ghost Hand (gaps between the real hand and the game's
-  hand), Occlusion Drift (two-handed aim drifting) and Flickers (single-frame flashes). With the Lanes plugin
-  the test is filmed and each jittery second is cut out as frames.
-- **Proven on:** 230+ reports across our VR mods; Flickers caught every planted flash on the simulator.
+  hand), Occlusion Drift (two-handed aim drifting), Flickers (single-frame flashes) and Eye Difference (anything
+  drawn differently in the left and the right eye). With the Lanes plugin the test is filmed and each jittery
+  second is cut out as frames, and the rider files each report by itself.
+- **Proven on:** 530+ reports across our VR mods (2026-11-11); Flickers caught every planted flash on the
+  simulator; Eye Difference passes its 16 checks on made-up eye pairs.
 
 ### Lanes — the Claude Code plugin all of this runs in
 - **Link:** https://github.com/TefMeister/lanes-plugin
