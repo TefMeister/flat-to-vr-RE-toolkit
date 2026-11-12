@@ -481,7 +481,19 @@ def set_exe(a):
     W.EXE = exe or ""
 
 
+def safe_console():
+    """2026-11-12, Developer PC: `known --add` wrote its line, then crashed printing the answer (UnicodeEncodeError on
+    the console's old code page), so a retry wrote the line twice. What a console cannot show is printed as ?; the
+    encoding stays the same, so programs that read our output decode it as before."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def main(doc=__doc__, extra=None):
+    safe_console()
     p = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     register_common(sub)

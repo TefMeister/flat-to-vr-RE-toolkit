@@ -234,5 +234,20 @@ with tempfile.TemporaryDirectory() as tmp:
     except ValueError:
         check("known: an unknown section is refused", True)
 
+# 2026-11-12, Developer PC: `known --add` wrote its line, then crashed printing the answer on a console with an old
+# code page, so a retry wrote it twice. The answer now prints with ? for what the console cannot show.
+import subprocess as _sp
+import tempfile as _tf
+_d = _tf.mkdtemp()
+_g = os.path.join(_d, "g")
+os.makedirs(_g)
+_env = dict(os.environ, PYTHONIOENCODING="cp1252")
+_r = _sp.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "menu_o_matic.py"), "known", _g,
+              "--add", "Tool ideas", "arrow \u2192 test \u2705"], capture_output=True, env=_env)
+check("known --add on an old-code-page console finishes without a crash", _r.returncode == 0
+      and b"UnicodeEncodeError" not in _r.stderr)
+check("known --add on an old-code-page console writes its line once",
+      open(os.path.join(_g, "KNOWN.md"), encoding="utf-8").read().count("arrow \u2192 test") == 1)
+
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)
