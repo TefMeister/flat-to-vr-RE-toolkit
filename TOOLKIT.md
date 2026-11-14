@@ -302,8 +302,9 @@ appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorde
 which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
 live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
 Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty-three games so far
-(2026-11-11), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness and
-Tale of Two Wastelands.
+(2026-11-14), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness, Tale of
+Two Wastelands, Condemned 2 and Silent Hill 2 (its New Game route checks the screen before each key, since a lost
+Enter once ran the credits).
 
 ### Shader readers: `d3d9-ctab.py`, `dxbc-reflect.py`, `dxbc-usage.py`
 Read a compiled shader's own description of itself out of any file (game archive, memory dump, capture):
@@ -430,7 +431,8 @@ Gun Poser, Animation & Timing, Window View) are made to be used together from in
   hand), Occlusion Drift (two-handed aim drifting), Flickers (single-frame flashes) and Eye Difference (anything
   drawn differently in the left and the right eye). With the Lanes plugin the test is filmed and each jittery
   second is cut out as frames, and the rider files each report by itself.
-- **Proven on:** 530+ reports across our VR mods (2026-11-11); Flickers caught every planted flash on the
+- **Proven on:** 550 reports across our VR mods (2026-11-14: 474 Ghost Hand, 76 Camera Jitter), filed by the
+  rider by itself; Flickers caught every planted flash on the
   simulator; Eye Difference passes its 16 checks on made-up eye pairs.
 
 ### Lanes — the Claude Code plugin all of this runs in
