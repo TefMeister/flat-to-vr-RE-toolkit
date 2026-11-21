@@ -301,10 +301,11 @@ plus small screen checkpoints compared by numbers, so a replay looks at nothing 
 appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorded route; State-o-matiC knows
 which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
 live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
-Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty-three games so far
-(2026-11-14), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness, Tale of
-Two Wastelands, Condemned 2 and Silent Hill 2 (its New Game route checks the screen before each key, since a lost
-Enter once ran the credits).
+Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty-four games so far
+(2026-11-21), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness, Tale of
+Two Wastelands, Condemned 2, Silent Hill 2 (its New Game route checks the screen before each key, since a lost
+Enter once ran the credits) and Resident Evil 4 (2023), the newest (first routes, taught main menu and a first
+walking route, 2026-11-19).
 
 ### Shader readers: `d3d9-ctab.py`, `dxbc-reflect.py`, `dxbc-usage.py`
 Read a compiled shader's own description of itself out of any file (game archive, memory dump, capture):
@@ -363,7 +364,7 @@ scripted sequence on one.
 ## Our apps (each in its own repo)
 
 Desktop apps and layers we built for our own VR work. The helper windows (Hand Freeze, Hand Poser, Grip Zones,
-Gun Poser, Animation & Timing, Window View) are made to be used together from inside the headset.
+Holster Zones, Gun Poser, Animation & Timing, Window View) are made to be used together from inside the headset.
 
 ### Hand Freeze — hold the VR controllers still, in any OpenXR game
 - **Link:** https://github.com/TefMeister/hand-freeze-vr (releases; current v4, the right-stick click)
@@ -385,12 +386,25 @@ Gun Poser, Animation & Timing, Window View) are made to be used together from in
   poses. Inspired by alphaZomega's EMV Engine poser.
 
 ### Grip Zones — move the places the hand can grip a gun
-- **Link:** https://github.com/TefMeister/grip-zones-vr (releases. Called Grab Zones until 2026-10-27)
+- **Link:** https://github.com/TefMeister/grip-zones-vr (releases; current v1.7. Called Grab Zones until 2026-10-27)
 - **What:** A desktop window, for now for Visceral RE8 (Resident Evil Village VR) only: every place the left hand can take hold
   of a gun (magazine, magazine well, slide, pump, bolt, front grip, shell port) is a zone with sliders for
   position and size, moved live on the gun in the game, per gun or for all guns. One list of the gun's own zones;
   the spheres show by themselves as the left hand comes near. Made to be used inside the headset through Window View.
-- **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01); still being tuned in the headset.
+- **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01; again for v1.7, 2026-11-14); still
+  being tuned in the headset.
+
+### Holster Zones — move the holster spots on the body
+- **Link:** https://github.com/TefMeister/holster-zones-vr (releases; current v1.3)
+- **What:** Grip Zones' sister window, for now for Visceral RE8 (Resident Evil Village VR) only: every place on the
+  body where a hand takes something (the four quick-slot spots on the shoulders and hips, the knife, the medicine and
+  the ammo pouch) is a row with sliders to move it, and the quick-slot spots and (v1.3) the ammo pouch have a size.
+  The open row shows as a sphere in the game, and its title turns green when the hand is inside. **SITTING** moves
+  every holster forward together, so they can be reached from a chair. Made to be used inside the headset through
+  Window View.
+- **Status:** built 2026-11-14 for playing seated; self-test 13 checks pass (v1.3, 2026-11-18); the pouch's size
+  slider not yet used in a headset. The knife, medicine and ammo holsters are Andyalpa's, from the RE8 VR work
+  Visceral RE8 builds on.
 
 ### Gun Poser — aim and move the gun in your hand, per gun
 - **Link:** https://github.com/TefMeister/gun-poser-vr (releases)
@@ -409,13 +423,17 @@ Gun Poser, Animation & Timing, Window View) are made to be used together from in
 - **Status:** built and checked against a stand-in game and its self-test (2026-11-07); not yet tried on a real game.
 
 ### Window View — your desktop windows inside any OpenXR game
-- **Link:** https://github.com/TefMeister/window-view-vr
-- **What:** A desktop app plus an OpenXR layer (D3D11/D3D12). Any desktop window hangs in front of you inside
-  the game, see-through as you like, and can be used with the mouse and keyboard (Page Up / Page Down) or the
-  VR controllers while the game only hears the controllers. This is how Hand Poser and Grip Zones are used
-  without taking the headset off.
+- **Link:** https://github.com/TefMeister/window-view-vr (releases; current v1.14)
+- **What:** A desktop app plus an OpenXR layer (D3D11/D3D12, 64-bit and 32-bit games). Any desktop window hangs in
+  front of you inside the game, see-through as you like, and can be used with the mouse and keyboard (Page Up /
+  Page Down) or the VR controllers while the game only hears the controllers. Since 1.12 a keyboard in the headset
+  that both hands type on with their pointers; since 1.13 a laser from each hand (red right, blue left) that clicks
+  on any window: the trigger is the left mouse button, A / X the right. This is how Hand Poser, Grip Zones and
+  Holster Zones are used without taking the headset off.
 - **Proven on:** v1.2 worn in a real headset on the home PC (2026-10-24: "this works really well now!"); v1.9
-  worn in Resident Evil Village (2026-10-30), less lag in D3D12 games with six windows open.
+  worn in Resident Evil Village (2026-10-30), less lag in D3D12 games with six windows open. The 1.12 keyboard on
+  the OpenXR Simulator with VR Bench's pretend hands: every key typed once and in order, none lost (2026-11-14). v1.14's
+  self-test (52 checks) passes; the lasers and two-handed clicks are not yet seen in a headset or the simulator.
 
 ### VR Bench — a robot player for VR games
 - **Link:** https://github.com/TefMeister/vr-bench (the layer) · driven by the Lanes plugin's `/lanes:bench`
@@ -431,12 +449,16 @@ Gun Poser, Animation & Timing, Window View) are made to be used together from in
   hand), Occlusion Drift (two-handed aim drifting), Flickers (single-frame flashes) and Eye Difference (anything
   drawn differently in the left and the right eye). With the Lanes plugin the test is filmed and each jittery
   second is cut out as frames, and the rider files each report by itself.
-- **Proven on:** 550 reports across our VR mods (2026-11-14: 474 Ghost Hand, 76 Camera Jitter), filed by the
+- **Proven on:** 734 reports across our VR mods (2026-11-19: 658 Ghost Hand, 76 Camera Jitter), filed by the
   rider by itself; Flickers caught every planted flash on the
   simulator; Eye Difference passes its 16 checks on made-up eye pairs.
 
 ### Lanes — the Claude Code plugin all of this runs in
-- **Link:** https://github.com/TefMeister/lanes-plugin
-- **What:** A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR
-  video game modding: the session lanes, the weekly tool check, Menu-o-matiC, VR Bench, the BeG0nE rider and
-  installers for the apps above. Its `docs/TOOLS.md` lists every outside tool we use, with its maker.
+- **Link:** https://github.com/TefMeister/lanes-plugin (releases; current v0.119.1)
+- **What:** A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for
+  Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in
+  the headset. Among them: the session lanes, the weekly full scan and tool check, Menu-o-matiC, VR Bench, the
+  BeG0nE rider, the Keeper (a second PC or helper session that does the uploading, 0.108.0), the hand-on to a fresh
+  window (`/lanes:next`, 0.118.0) and installers for the apps above (Holster Zones, Gun Poser and Animation & Timing
+  since 0.115.0). It can update itself with no question (the optional `auto_update` extra, 0.117.0). Its
+  `plugins/lanes/docs/TOOLS.md` lists every outside tool we use, with its maker.
