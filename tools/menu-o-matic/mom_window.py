@@ -11,6 +11,42 @@ import time
 
 u, g = ctypes.windll.user32, ctypes.windll.gdi32
 
+
+def make_dpi_aware():
+    """0.119.0: the tools see real screen pixels at any display scaling. Unaware, Windows hands a 200 %-scaled program a
+    halved screen (3440x1440 read as 1720x720) and the capture got only the window's top-left quarter, so every RE4
+    route was lost at the title (Developer PC, 2026-11-19 / 20; the work-around was __COMPAT_LAYER=HighDpiAware).
+    Per-monitor v2 first, then per-monitor, then the old system-wide call. Returns the one that took, or None."""
+    try:
+        if u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):      # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+            return "per-monitor v2"
+    except (AttributeError, OSError):
+        pass
+    try:
+        if ctypes.windll.shcore.SetProcessDpiAwareness(2) == 0:      # PROCESS_PER_MONITOR_DPI_AWARE
+            return "per-monitor"
+    except (AttributeError, OSError):
+        pass
+    try:
+        if u.SetProcessDPIAware():
+            return "system"
+    except (AttributeError, OSError):
+        pass
+    return None
+
+
+def dpi_aware_now():
+    """True when this program already sees real pixels (whatever set it, also a setting made before us)"""
+    try:
+        u.GetThreadDpiAwarenessContext.restype = ctypes.c_void_p
+        ctx = ctypes.c_void_p(u.GetThreadDpiAwarenessContext())
+        return any(u.AreDpiAwarenessContextsEqual(ctx, ctypes.c_void_p(v)) for v in (-2, -3, -4))
+    except (AttributeError, OSError):
+        return bool(u.IsProcessDPIAware())
+
+
+DPI_MODE = make_dpi_aware()   # at load, before any window is measured or captured
+
 # ---- Settings ----------------------------------------------------------------
 FOCUS_SETTLE_S = 0.30   # after bringing the window to the front
 KEY_HOLD_S = 0.15       # how long a tapped key stays down. 0.07 s was missed by Burnout Paradise running
@@ -91,6 +127,11 @@ REFUSED = []        # (title, program) of the windows the last find_window turne
 
 def program_of(hwnd):
     """The file name of the program that owns the window ("falloutnv.exe"), lower case, or "" if Windows won't say."""
+    return program_path(hwnd).replace("/", "\\").rsplit("\\", 1)[-1].lower()
+
+
+def program_path(hwnd):
+    """The full path of the program that owns the window, or "" if Windows won't say (mom_expect: a new game build)."""
     kernel32 = ctypes.windll.kernel32
     pid = w.DWORD()
     u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
@@ -103,7 +144,7 @@ def program_of(hwnd):
         size = w.DWORD(1024)
         if not kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
             return ""
-        return buf.value.replace("/", "\\").rsplit("\\", 1)[-1].lower()
+        return buf.value
     finally:
         kernel32.CloseHandle(handle)
 
@@ -253,6 +294,59 @@ def capture(hwnd):
     g.DeleteObject(bmp)
     g.DeleteDC(mdc)
     u.ReleaseDC(0, hdc)
+    img = Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1).convert("RGB")
+    if covered(hwnd):
+        # 0.119.0: in front, yet another window on top of it (an always-on-top terminal): the screen shows that window,
+        # so the game's own window is asked for its picture instead (Village, Developer PC 2026-11-15: `look` saved the
+        # Claude window; PrintWindow with full content saw the game every time). Only then: PrintWindow can serve a
+        # stale frame while a game loads, which is why the screen stays the first choice.
+        own = print_window(hwnd, width, height)
+        if own is not None:
+            return own
+    return img
+
+
+GA_ROOT = 2
+COVER_SPOTS = ((0.5, 0.5), (0.2, 0.2), (0.8, 0.2), (0.2, 0.8), (0.8, 0.8))
+
+
+def covered(hwnd):
+    """True when, at any of a few spots inside the window, the window Windows would click is another program's"""
+    width, height = client_size(hwnd)
+    if width <= 0 or height <= 0:
+        return False
+    for fx, fy in COVER_SPOTS:
+        pt = w.POINT(int(width * fx), int(height * fy))
+        u.ClientToScreen(hwnd, ctypes.byref(pt))
+        u.WindowFromPoint.restype = w.HWND
+        top = u.WindowFromPoint(pt)
+        if top and u.GetAncestor(top, GA_ROOT) != u.GetAncestor(hwnd, GA_ROOT):
+            return True
+    return False
+
+
+PW_CLIENT_FULL = 3   # PW_CLIENTONLY | PW_RENDERFULLCONTENT: the client area, also for a window drawn by the graphics card
+
+
+def print_window(hwnd, width, height):
+    """the window's own picture (PrintWindow), or None when Windows refuses"""
+    from PIL import Image
+    hdc = u.GetDC(0)
+    mdc = g.CreateCompatibleDC(hdc)
+    bmp = g.CreateCompatibleBitmap(hdc, width, height)
+    g.SelectObject(mdc, bmp)
+    ok = u.PrintWindow(hwnd, mdc, PW_CLIENT_FULL)
+    bi = BITMAPINFOHEADER()
+    bi.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+    bi.biWidth, bi.biHeight = width, -height
+    bi.biPlanes, bi.biBitCount, bi.biCompression = 1, 32, 0
+    buf = ctypes.create_string_buffer(width * height * 4)
+    g.GetDIBits(mdc, bmp, 0, height, buf, ctypes.byref(bi), 0)
+    g.DeleteObject(bmp)
+    g.DeleteDC(mdc)
+    u.ReleaseDC(0, hdc)
+    if not ok:
+        return None
     return Image.frombuffer("RGBA", (width, height), buf, "raw", "BGRA", 0, 1).convert("RGB")
 
 

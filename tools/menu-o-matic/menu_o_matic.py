@@ -129,8 +129,43 @@ def cmd_windowcheck(a):
     say(event="windowcheck", **v)
 
 
+def sheet(images, labels, cols=None, bright=False):
+    """0.119.0: several small looks tiled into ONE labelled picture (Developer PC, RE4 2026-11-19: a hand-made sheet
+    cut the pictures read by about four in five). bright=True lifts dark scenes so they can be read."""
+    from PIL import Image, ImageDraw, ImageOps
+    n = len(images)
+    cols = cols or min(n, 3)
+    rows = (n + cols - 1) // cols
+    tw, th = images[0].size
+    band = 18
+    out = Image.new("RGB", (cols * tw, rows * (th + band)), (24, 24, 24))
+    d = ImageDraw.Draw(out)
+    for i, (im, label) in enumerate(zip(images, labels)):
+        if bright:
+            im = ImageOps.autocontrast(im, cutoff=1)
+        x, y = (i % cols) * tw, (i // cols) * (th + band)
+        out.paste(im.resize((tw, th)), (x, y + band))
+        d.text((x + 4, y + 3), label, fill=(255, 220, 90))
+    return out
+
+
 def cmd_look(a):
     import mom_window as W
+    if a.sheet and a.sheet > 1:
+        hwnd = need_window(a.window)
+        shots, labels, t0 = [], [], time.time()
+        for k in range(a.sheet):
+            im = W.capture(hwnd)
+            if a.region:
+                im = R.crop(im, R.parse_region(a.region))
+            shots.append(im.resize((max(1, int(im.width * a.scale)), max(1, int(im.height * a.scale)))))
+            labels.append("%d  +%.1f s" % (k + 1, time.time() - t0))
+            if k < a.sheet - 1:
+                time.sleep(a.every)
+        img = sheet(shots, labels, bright=a.bright)
+        img.save(a.out)
+        say(event="look", out=a.out, size=list(img.size), looks=a.sheet)
+        return
     img = W.capture(need_window(a.window))
     if a.region:
         img = R.crop(img, R.parse_region(a.region))
@@ -233,6 +268,12 @@ def cmd_add(a):
         route["steps"].append({"picture": a.picture})       # the route's result is a picture (a settings page)
     elif a.button:
         route["steps"].append({"button": a.button, "dialog": a.dialog})   # a launcher's Play button
+    elif a.key:
+        import mom_window as W
+        if a.key.lower() not in W.KEYS:
+            say(event="error", error=f"unknown key '{a.key}'")
+            sys.exit(2)
+        route["steps"].append({"key": a.key.lower()})   # 0.119.0: a key step written without pressing it
     else:
         route["steps"].append({"launch": a.launch})
     R.save(route, a.route)
@@ -386,10 +427,49 @@ def cmd_note(a):
     say(event="note", notes=len(route["setup_notes"]))
 
 
+def cmd_expect(a):
+    """Give step N (a key, click, wheel or hold) a picture check that runs before its input (mom_expect)."""
+    import mom_expect as E
+    route = R.load(a.route)
+    if not 0 <= a.step < len(route["steps"]) or not any(k in route["steps"][a.step] for k in
+                                                         ("key", "click", "wheel", "hold", "turn", "play")):
+        say(event="error", error=f"step {a.step} is not a key, click, wheel or hold step")
+        sys.exit(1)
+    test = {"test": a.test}
+    if a.test == "checkpoint":
+        test["name"] = a.name
+    else:
+        if not a.region:
+            say(event="error", error="--region x,y,w,h is needed for a number test"); sys.exit(1)
+        test["region"] = R.parse_region(a.region)
+    read = None
+    if a.image and a.test != "checkpoint":
+        from PIL import Image
+        read = round(E.measure(Image.open(a.image), test), 3)
+        if a.min is None and a.max is None:      # a limit between this picture and an empty screen
+            test.update(E.suggest_limit(a.test, read))
+    if a.min is not None:
+        test["min"] = a.min
+    if a.max is not None:
+        test["max"] = a.max
+    step = route["steps"][a.step]
+    step["expect"] = E.tests_of(step) + [test] if a.alt else test
+    if a.always:
+        step["always"] = True
+    E.validate(route, a.route)
+    R.save(route, a.route)
+    say(event="expect", step=a.step, test=test, read_on_image=read, ways=len(E.tests_of(step)),
+        always=bool(step.get("always")))
+
+
 def register_common(sub):
     """The commands both Menu-o-matiC and Move-o-matiC have."""
     s = sub.add_parser("look"); s.add_argument("window"); s.add_argument("out")
-    s.add_argument("--region"); s.add_argument("--scale", type=float, default=1.0); s.set_defaults(f=cmd_look)
+    s.add_argument("--region"); s.add_argument("--scale", type=float, default=1.0)
+    s.add_argument("--sheet", type=int, default=0, help="N looks tiled into one labelled picture (0.119.0)")
+    s.add_argument("--every", type=float, default=1.0, help="seconds between the looks of a sheet")
+    s.add_argument("--bright", action="store_true", help="lift dark scenes in a sheet so they can be read")
+    s.set_defaults(f=cmd_look)
     s = sub.add_parser("press"); s.add_argument("window"); s.add_argument("key")
     s.add_argument("--route"); s.add_argument("--changed"); s.set_defaults(f=cmd_press)
     s = sub.add_parser("click"); s.add_argument("window"); s.add_argument("point")
@@ -409,7 +489,7 @@ def register_common(sub):
     s.set_defaults(f=cmd_new)
     s = sub.add_parser("add"); s.add_argument("route"); g = s.add_mutually_exclusive_group(required=True)
     g.add_argument("--sleep", type=float); g.add_argument("--launch"); g.add_argument("--picture")
-    g.add_argument("--button"); s.add_argument("--dialog", default="")
+    g.add_argument("--button"); g.add_argument("--key"); s.add_argument("--dialog", default="")
     s.set_defaults(f=cmd_add)
     s = sub.add_parser("routes"); s.add_argument("folder"); s.set_defaults(f=cmd_routes)
     s = sub.add_parser("known"); s.add_argument("folder"); s.add_argument("--add", nargs=2, metavar=("SECTION", "TEXT"))
@@ -432,7 +512,19 @@ def register_common(sub):
     s = sub.add_parser("run"); s.add_argument("routes", nargs="+")
     s.add_argument("--from", dest="start", type=int, default=0)
     s.add_argument("--lost-dir", default="menu-o-matic-lost")
-    s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S); s.set_defaults(f=cmd_run)
+    s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S)
+    g = s.add_mutually_exclusive_group()
+    g.add_argument("--check", action="store_true", help="look at every expect on this run")
+    g.add_argument("--no-check", action="store_true", help="look at none, not even the 'always' ones")
+    s.set_defaults(f=cmd_run)
+    s = sub.add_parser("expect"); s.add_argument("route"); s.add_argument("step", type=int)
+    s.add_argument("--test", required=True, choices=("red", "bright", "dark", "checkpoint"))
+    s.add_argument("--region"); s.add_argument("--name", help="the checkpoint, for --test checkpoint")
+    s.add_argument("--min", type=float); s.add_argument("--max", type=float)
+    s.add_argument("--image", help="a picture of the right screen: reads the number and suggests the limit")
+    s.add_argument("--or", dest="alt", action="store_true", help="add as another way the screen may look")
+    s.add_argument("--always", action="store_true", help="check on every run (New Game, overwrite save)")
+    s.set_defaults(f=cmd_expect)
 
 
 # The commands that press keys, click or turn: two of these from different sessions on one PC press into each

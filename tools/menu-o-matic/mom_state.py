@@ -88,22 +88,26 @@ def judge(signs):
         return "paused", "the window is not in front, and many games (every RE Engine one) pause until it is"
     disk = signs.get("disk_mb_s")
     avg, ever = signs["motion"], signs["motion_anywhere"]
-    if disk is not None and disk >= DISK_LOADING_MB_S and avg < MOVING_SHARE:
-        return "loading", f"reading the disk at {disk:.0f} MB/s while the picture is fairly still"
-    if signs["letterbox"]:
-        return "cutscene", "black bars at the top and bottom"
+    # 0.119.0: a game that streams from disk all through play (Resident Evil 4, 170-180 MB/s walking in the village,
+    # Developer PC 2026-11-19) was called "loading". A game's states.json may set its own `disk_loading_mb_s`, and a
+    # picture that answers a key is gameplay whatever the disk does.
+    disk_limit = signs.get("disk_loading_mb_s") or DISK_LOADING_MB_S
     poke = signs.get("poke_answer")
     if poke is not None and poke >= POKE_ANSWER:
         # a still picture that answers a key is gameplay too: a parked car, a character standing still
         # (Burnout, 2026-09-28: the parked view looked exactly like a menu until a key was tried)
         return "gameplay", "the picture answers a key"
+    if disk is not None and disk >= disk_limit and avg < MOVING_SHARE:
+        return "loading", f"reading the disk at {disk:.0f} MB/s while the picture is fairly still"
+    if signs["letterbox"]:
+        return "cutscene", "black bars at the top and bottom"
     if avg >= MOVING_SHARE:
         if poke is None:
             return "moving", "lots of the picture is moving (gameplay or a cutscene; poke a key to tell them apart)"
         return "cutscene", "the picture moves but does not answer a key"
     if ever <= SPINNER_MAX_SHARE and avg > 0:
         why = "only a small patch moves (a loading icon or a menu highlight)"
-        if disk is not None and disk >= DISK_LOADING_MB_S:
+        if disk is not None and disk >= disk_limit:
             return "loading", why + f", and the disk reads at {disk:.0f} MB/s"
         return "menu or loading screen", why
     if avg < STILL_SHARE:

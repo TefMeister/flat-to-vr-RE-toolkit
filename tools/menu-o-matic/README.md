@@ -162,6 +162,34 @@ the timeout. Tested on Notepad for all rows except "Not Responding", which needs
   Some screens ignore a key while they are still fading in (Burnout's title screen does). Add it by editing the route
   file: `{"wait": "save_notice", "repress": 4}`.
 
+## A quick look before a key press (`expect`, 0.116.x)
+
+A wait step checks the screen AFTER a key. Some routes press several keys in a row with no wait between them
+(Enter, Down, Enter). If one key gets lost, every key after it lands one line off: on Silent Hill 2 the first Enter
+was swallowed by the warning screen, and the game played its Credits instead of starting a New Game, twice. An
+`expect` on a key, click, wheel or hold step checks the screen BEFORE that input is sent, and stops the route if the
+screen is wrong.
+
+It costs next to nothing: one grab of the window and one number from a small part of it (the share of red where
+the highlighted line should be, the brightness of a warning's white square). No picture is looked at unless the
+check fails. The tests are `red`, `bright`, `dark` (each with `--min` / `--max`) and `checkpoint` (one of the
+route's saved checkpoints). Add `--or` to give another way the screen may look (Silent Hill 2 draws its menus in
+the top two thirds of the window under the VR injector, and over the whole window without it).
+
+```
+python menu_o_matic.py expect route.json 3 --test bright --region 0.44,0.62,0.12,0.20 --image warning.png
+python menu_o_matic.py expect route.json 6 --test red --region 0.02,0.24,0.10,0.03 --min 0.3 --always
+python menu_o_matic.py expect route.json 6 --test red --region 0.02,0.16,0.10,0.02 --min 0.3 --or
+```
+
+With `--image` (for example a picture saved when the route was recorded), the tool measures that picture and sets
+the limit halfway to an empty screen. **It does not check on every run:** it checks on the first run, after the
+route, the game's program or the window size changed, on the run after one that failed or was stopped, and every
+10th run as a spot check. Steps marked `--always` (New Game, overwriting a save: anything that destroys or
+overwrites something) are checked on every run. `run --check` checks every step, `run --no-check` skips all of
+them. A failed check prints `unexpected` (exit 2) and saves `unexpected-step<N>.png` in the lost folder. The input
+is never sent.
+
 ## Commands
 
 ```
@@ -174,7 +202,8 @@ python menu_o_matic.py press "Burnout(TM)" enter --route route.json --changed cr
 python menu_o_matic.py click "Burnout(TM)" 0.5,0.62 --route route.json
 python menu_o_matic.py mark  "Burnout(TM)" route.json main_menu --region 0.25,0.4,0.5,0.35 --note "..."
 python menu_o_matic.py check "Burnout(TM)" route.json main_menu
-python menu_o_matic.py run   route.json [--from N] [--timeout 90] [--lost-dir DIR]
+python menu_o_matic.py run   route.json [--from N] [--timeout 90] [--lost-dir DIR] [--check | --no-check]
+python menu_o_matic.py expect route.json N --test red|bright|dark|checkpoint [--region ..] [--min ..] [--max ..]
 ```
 
 Every command prints one JSON line per event, so another program or an AI can read the result. `run` exits with

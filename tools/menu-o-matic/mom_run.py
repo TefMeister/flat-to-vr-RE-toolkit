@@ -119,10 +119,31 @@ def wait_for(route, i, step, hwnd, timeout, lost_dir):
     lost(route, i, step, hwnd, lost_dir, d, reason)
 
 
-def run_route(route, start, timeout, lost_dir):
+def unexpected(route, index, step, img, lost_dir, readings):
+    """An expect failed: the input is NOT sent. Keep the picture and say what was expected (mom_expect)."""
+    os.makedirs(lost_dir, exist_ok=True)
+    full = os.path.join(lost_dir, f"unexpected-step{index}.png")
+    img.resize((max(1, img.width // 2), max(1, img.height // 2))).save(full)
+    action = {k: step[k] for k in ("key", "click", "wheel", "hold", "turn") if k in step}
+    say(event="unexpected", route=route["route"], step=index, would_send=action or "input", readings=readings,
+        reason="the screen is not the one this step expects, so the input was NOT sent", full=full,
+        note=step.get("note", ""))
+    sys.exit(EXIT_LOST)
+
+
+INPUTS = ("key", "click", "wheel", "hold", "turn", "play")
+
+
+def run_route(route, start, timeout, lost_dir, check_mode="auto"):
     import mom_window as W
+    import mom_expect as E
     W.KEY_MODE = route.get("key_input", "sendinput")     # how this game takes keys (mom_window.KEY_MODE)
     W.EXE = route.get("exe") or W.EXE                    # the game's program, if the route names it
+    E.validate(route, route.get("route", "route"))
+    # the picture checks before key presses (mom_expect): only routes that have any, and only on the runs they are due
+    expecting = any(E.tests_of(s) for s in route["steps"])
+    prev = E.run_began(route) if expecting else None
+    checks = None                                        # decided at the first step with an expect (window is up)
     hwnd = W.find_window(route["window"])
     for i, step in enumerate(route["steps"]):
         if i < start:
@@ -188,6 +209,17 @@ def run_route(route, start, timeout, lost_dir):
             hwnd = W.wait_window(route["window"], WINDOW_TIMEOUT_S)
         if not hwnd or not W.is_open(hwnd):
             gone(i, "the game window is not there")
+        if E.tests_of(step) and any(k in step for k in INPUTS):
+            if checks is None:
+                size, prog = W.client_size(hwnd), W.program_path(hwnd)
+                checks, why = E.due(route, size, prog, check_mode, prev)
+                E.checks_decided(route, size, prog, checks)
+                say(event="checks", due=checks, why=why)
+            if E.step_checked(step, checks, check_mode):
+                ok, readings, img = E.check_step(route, step, lambda: W.capture(hwnd))
+                if not ok:
+                    unexpected(route, i, step, img, lost_dir, readings)
+                say(event="expected", step=i, read=[r["read"] for r in readings])
         if "key" in step:
             W.tap(step["key"], hwnd)
             say(event="key", step=i, key=step["key"])
@@ -212,10 +244,13 @@ def run_route(route, start, timeout, lost_dir):
         elif "wait" in step:
             d, hwnd = wait_for(route, i, step, hwnd, timeout, lost_dir)
             say(event="reached", step=i, checkpoint=step["wait"], distance=round(d, 2))
+    if expecting:
+        E.run_finished(route)
     say(event="done", route=route["route"])
 
 
 def cmd_run(a):
     """Run one or more route files in a row (a menu route, then a movement route). --from applies to the first."""
+    mode = "force" if getattr(a, "check", False) else "off" if getattr(a, "no_check", False) else "auto"
     for n, path in enumerate(a.routes):
-        run_route(R.load(path), a.start if n == 0 else 0, a.timeout, a.lost_dir)
+        run_route(R.load(path), a.start if n == 0 else 0, a.timeout, a.lost_dir, mode)

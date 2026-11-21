@@ -249,5 +249,27 @@ check("known --add on an old-code-page console finishes without a crash", _r.ret
 check("known --add on an old-code-page console writes its line once",
       open(os.path.join(_g, "KNOWN.md"), encoding="utf-8").read().count("arrow \u2192 test") == 1)
 
+# 0.119.0: a game that streams from disk during play is not "loading" (Resident Evil 4, Developer PC 2026-11-19)
+import mom_state as _S
+_re4 = {"motion": 0.05, "motion_anywhere": 0.4, "letterbox": False, "disk_mb_s": 175.0, "cpu_cores": 4.0,
+        "in_front": True}
+check("RE4's 175 MB/s with the default line still reads as loading (the fault)", _S.judge(dict(_re4))[0] == "loading")
+check("with RE4's own disk_loading_mb_s the same signs are not loading",
+      _S.judge(dict(_re4, disk_loading_mb_s=400.0))[0] != "loading")
+check("a picture that answers a key is gameplay whatever the disk reads",
+      _S.judge(dict(_re4, poke_answer=0.3))[0] == "gameplay")
+check("a real load (still picture, hard reads, no answer) is still loading",
+      _S.judge(dict(_re4, motion=0.01, disk_mb_s=600.0, disk_loading_mb_s=400.0, poke_answer=0.0))[0] == "loading")
+
+# 0.119.0: each tool sees real pixels at any display scaling (Developer PC at 200 %, 2026-11-19 / 20)
+_here = os.path.dirname(os.path.abspath(__file__))
+for _tool in ("menu_o_matic.py", "state_o_matic.py", "move_o_matic.py"):
+    _code = ("import sys, runpy\nsys.argv = ['x', '--help']\nsys.path.insert(0, %r)\n"
+             "try:\n    runpy.run_path(%r, run_name='__main__')\nexcept SystemExit:\n    pass\n"
+             "import mom_window as W\nprint('AWARE', W.dpi_aware_now())") % (_here, os.path.join(_here, _tool))
+    _r = _sp.run([sys.executable, "-c", _code], capture_output=True, text=True,
+                        env={k: v for k, v in os.environ.items() if k != "__COMPAT_LAYER"})
+    check(f"{_tool} is aware of display scaling with no __COMPAT_LAYER", "AWARE True" in _r.stdout)
+
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)

@@ -71,6 +71,10 @@ def routes_copies(root):
     return out
 
 
+NO_STATES = ("none: no taught screens matched the window '%s' (a states.json's \"window\" must be part of the window's "
+             "title, or name it with --game / --states)")   # 0.119.0: said, not left blank (RE4 2026-11-19)
+
+
 def find_states(window, game=None):
     """the states.json taught for this game: routes/<game>/states.json, or the one whose window matches (Run 5 D1:
     watch did not find a game's taught screens unless told with --states). Every copy of the routes folder on this PC
@@ -124,6 +128,8 @@ def observe(hwnd, seconds, states=None, poke=None, _second=False):
         signs["cpu_cores"] = round((cpu1 - cpu0) / (t1 - t0), 2)
     signs["hung"] = W.hung(hwnd)
     signs["in_front"] = W.in_front(hwnd)
+    if states and states.get("disk_loading_mb_s"):
+        signs["disk_loading_mb_s"] = float(states["disk_loading_mb_s"])   # this game's own loading line (0.119.0)
     if states:
         for name, cp in states["checkpoints"].items():
             if R.matches(states, name, images[-1])[1]:
@@ -180,13 +186,13 @@ def cmd_watch(a):
     if t.is_alive():
         say(event="state", state="frozen", why=f"looking at the window did not finish within {limit:.0f} s: the game "
                                                f"is not answering at all (stopped or frozen)", signs={"timed_out": True},
-            states=states_file or "")
+            states=states_file or NO_STATES % a.window)
         sys.stdout.flush()
         os._exit(0)
     if "e" in done:
         raise done["e"]
     state, why, signs = done["v"]
-    say(event="state", state=state, why=why, signs=signs, states=states_file or "")
+    say(event="state", state=state, why=why, signs=signs, states=states_file or NO_STATES % a.window)
 
 
 def cmd_teach(a):

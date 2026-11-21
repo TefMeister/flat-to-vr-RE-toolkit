@@ -49,6 +49,34 @@ def keys(log):
     return open(log).read().split() if os.path.isfile(log) else []
 
 
+COVER_PROG = r'''
+import tkinter as tk
+r = tk.Tk(); r.title("COVERTEST-GAME"); r.geometry("400x300+200+200"); r.configure(bg="#ff0000")
+t = tk.Toplevel(r); t.title("COVERTEST-TOP"); t.geometry("400x300+200+200"); t.configure(bg="#0000ff")
+t.attributes("-topmost", True)
+r.after(15000, r.destroy)
+r.mainloop()
+'''
+
+
+def covered_window_check():
+    """0.119.0: a game window under an always-on-top one is still captured as itself (Village 2026-11-15)"""
+    p = subprocess.Popen([sys.executable, "-c", COVER_PROG])
+    try:
+        hwnd = 0
+        end = time.time() + START_WAIT_S
+        while time.time() < end and not hwnd:
+            time.sleep(0.25)
+            hwnd = W.find_window("COVERTEST-GAME", exe="")
+        time.sleep(1.0)
+        check("a window under an always-on-top one counts as covered", bool(hwnd) and W.covered(hwnd))
+        img = W.capture(hwnd)
+        px = img.getpixel((img.width // 2, img.height // 2))
+        check("and its capture is its own picture, not the one on top", px[0] > 200 and px[2] < 60, str(px))
+    finally:
+        p.kill()
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="mom-exe-")
     script = os.path.join(tmp, "window.py")
@@ -103,6 +131,7 @@ def main():
     finally:
         for p in (chat, game):
             p.kill()
+    covered_window_check()
     print("\nall passed" if not FAILS else f"\n{len(FAILS)} FAILED: {', '.join(FAILS)}")
     sys.exit(1 if FAILS else 0)
 
