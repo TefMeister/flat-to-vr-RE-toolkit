@@ -377,22 +377,25 @@ Holster Zones, Gun Poser, Animation & Timing, Window View) are made to be used t
   (2026-10-25). OpenXR games only.
 
 ### Hand Poser — pose the player's fingers with sliders
-- **Link:** https://github.com/TefMeister/hand-poser-vr
+- **Link:** https://github.com/TefMeister/hand-poser-vr (releases; current v0.10)
 - **What:** A compact desktop window of joint sliders plus one REFramework script, for RE Engine games. One box
   per finger; move a slider and that joint follows live while the game's animation runs around it. Undo/redo,
   autosave, named builds, one pose per gun, and VR-controller nudges through Window View. The game script loads
   each gun's pose by itself, so the poses work without the app open.
-- **Proven on:** its own self-test (27 checks, 2026-11-01) and a stand-in game; in use for Visceral RE8's hand
-  poses. Inspired by alphaZomega's EMV Engine poser.
+- **Proven on:** its own self-test (56 checks, 2026-11-25, v0.10) and a stand-in game; in use for Visceral RE8's hand
+  poses through Window View. Since v0.10 every hand spot has a number (shown on the spot line and shared with the
+  other helper windows) and it is steered from the controllers (LT a section, the left stick a slider, the right
+  stick tunes). Inspired by alphaZomega's EMV Engine poser.
 
 ### Grip Zones — move the places the hand can grip a gun
-- **Link:** https://github.com/TefMeister/grip-zones-vr (releases; current v1.7. Called Grab Zones until 2026-10-27)
+- **Link:** https://github.com/TefMeister/grip-zones-vr (releases; current v1.8. Called Grab Zones until 2026-10-27)
 - **What:** A desktop window, for now for Visceral RE8 (Resident Evil Village VR) only: every place the left hand can take hold
   of a gun (magazine, magazine well, slide, pump, bolt, front grip, shell port) is a zone with sliders for
   position and size, moved live on the gun in the game, per gun or for all guns. One list of the gun's own zones;
   the spheres show by themselves as the left hand comes near. Made to be used inside the headset through Window View.
-- **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01; again for v1.7, 2026-11-14); still
-  being tuned in the headset.
+- **Proven on:** Visceral RE8, built 2026-10-25; self-test 12 checks (2026-11-01; again for v1.7, 2026-11-14, and
+  v1.8, 2026-11-25); still being tuned in the headset. v1.8 takes Hand Poser's controller scheme and shows the
+  hands' spot numbers.
 
 ### Holster Zones — move the holster spots on the body
 - **Link:** https://github.com/TefMeister/holster-zones-vr (releases; current v1.3)
@@ -449,16 +452,18 @@ Holster Zones, Gun Poser, Animation & Timing, Window View) are made to be used t
   hand), Occlusion Drift (two-handed aim drifting), Flickers (single-frame flashes) and Eye Difference (anything
   drawn differently in the left and the right eye). With the Lanes plugin the test is filmed and each jittery
   second is cut out as frames, and the rider files each report by itself.
-- **Proven on:** 734 reports across our VR mods (2026-11-19: 658 Ghost Hand, 76 Camera Jitter), filed by the
+- **Proven on:** 942 reports across our VR mods (2026-11-25: 859 Ghost Hand, 83 Camera Jitter), filed by the
   rider by itself; Flickers caught every planted flash on the
   simulator; Eye Difference passes its 16 checks on made-up eye pairs.
 
 ### Lanes — the Claude Code plugin all of this runs in
-- **Link:** https://github.com/TefMeister/lanes-plugin (releases; current v0.119.1)
+- **Link:** https://github.com/TefMeister/lanes-plugin (releases; current v0.124.1)
 - **What:** A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for
   Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in
   the headset. Among them: the session lanes, the weekly full scan and tool check, Menu-o-matiC, VR Bench, the
   BeG0nE rider, the Keeper (a second PC or helper session that does the uploading, 0.108.0), the hand-on to a fresh
   window (`/lanes:next`, 0.118.0) and installers for the apps above (Holster Zones, Gun Poser and Animation & Timing
-  since 0.115.0). It can update itself with no question (the optional `auto_update` extra, 0.117.0). Its
+  since 0.115.0). It can update itself with no question (the optional `auto_update` extra, 0.117.0). Since 0.120.0
+  it runs on one PC as three windows (Developer, Tester, Keeper) with nothing that clashes running twice, and a
+  second PC set up like a stranger's tries each release as a new user would (0.121.0 onward). Its
   `plugins/lanes/docs/TOOLS.md` lists every outside tool we use, with its maker.
