@@ -271,5 +271,21 @@ for _tool in ("menu_o_matic.py", "state_o_matic.py", "move_o_matic.py"):
                         env={k: v for k, v in os.environ.items() if k != "__COMPAT_LAYER"})
     check(f"{_tool} is aware of display scaling with no __COMPAT_LAYER", "AWARE True" in _r.stdout)
 
+# 2026-11-23: a frozen game's known cause, read from the loader's log beside it (State-o-matiC says why and what to do)
+import time as _time  # noqa: E402
+with tempfile.TemporaryDirectory() as _d:
+    _log = os.path.join(_d, S.LOADER_LOG)
+    check("frozen cause: no log beside the game = no known cause", S.frozen_cause(_d) is None)
+    with open(_log, "w", encoding="utf-8") as _f:
+        _f.write("[info] Locking loader lock...\n" + "[info] [Thread.cpp:42] Suspending 1\n" * 62 + "[info] [Thread.cpp:60] Resuming 1\n" * 17)
+    _old = _time.time() + 120
+    _c = S.frozen_cause(_d, now=_old)
+    check("frozen cause: threads paused and never let go, the log still = the loader's start-up hang",
+          _c is not None and _c["cause"] == "loader_startup_hang" and "62" in _c["why"] and "17" in _c["why"] and "start the game again" in _c["do"])
+    check("frozen cause: the same log still being written is not called yet", S.frozen_cause(_d, now=_time.time()) is None)
+    with open(_log, "w", encoding="utf-8") as _f:
+        _f.write("[info] [Thread.cpp:42] Suspending 1\n" * 76 + "[info] [Thread.cpp:60] Resuming 1\n" * 76 + "textures have been setup\n")
+    check("frozen cause: a good start (as many let go as paused, textures set up) = no known cause", S.frozen_cause(_d, now=_old) is None)
+
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)

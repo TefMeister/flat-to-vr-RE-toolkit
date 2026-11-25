@@ -113,3 +113,36 @@ def judge(signs):
     if avg < STILL_SHARE:
         return "still", "the picture is not changing (a menu, a paused game, or a frozen one)"
     return "menu or loading screen", "a little of the picture moves"
+
+
+# ---- Why a frozen game is frozen (2026-11-23) ------------------------------------------------------------------------
+# "frozen" alone left the session guessing whether its own change had hung the game. Some freezes have a signature in a
+# file beside the game; each entry here is one that was seen, with what it means and what to do. Asked for by the
+# maintainer after a black, hung window: "report this to state-o-matic to learn from".
+LOADER_LOG = "re2_framework_log.txt"      # REFramework writes its log under this name for every RE Engine game
+LOADER_LOG_QUIET_S = 20.0                 # the log has stood still this long
+LOADER_READY_TEXT = "textures have been setup"
+
+
+def frozen_cause(game_dir, now=None):
+    """Why is the frozen game in this folder frozen, if a known signature says so? -> dict(cause, why, do) or None.
+
+    Known so far: REFramework's own start-up deadlock (Village, 2026-11-23, about one start in ten): its log stops in a
+    run of "Suspending <thread>" lines with fewer "Resuming" ones (62 against 17; a good start has them equal) and never
+    reaches the line that says its textures are set up. Nothing of a mod has loaded by then."""
+    import os
+    import time
+    path = os.path.join(game_dir or "", LOADER_LOG)
+    try:
+        age = (now if now is not None else time.time()) - os.path.getmtime(path)
+        with open(path, "rb") as f:
+            text = f.read().decode("utf-8", "replace")
+    except OSError:
+        return None
+    paused, resumed = text.count("] Suspending "), text.count("] Resuming ")
+    if age >= LOADER_LOG_QUIET_S and paused > resumed and LOADER_READY_TEXT not in text:
+        return {"cause": "loader_startup_hang",
+                "why": f"the loader (REFramework) stopped in its own start-up: it paused {paused} of the game's threads and "
+                       f"let only {resumed} go again, {age:.0f} s ago; nothing of a mod had loaded yet",
+                "do": "end the process (its own close cannot work) and start the game again"}
+    return None

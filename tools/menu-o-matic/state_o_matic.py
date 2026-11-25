@@ -111,6 +111,11 @@ def observe(hwnd, seconds, states=None, poke=None, _second=False):
         # Run 5 D2: a minimised window has no picture to look at, and watch stopped with an error
         return "minimised", "the window is minimised, so there is nothing on screen to judge (not in front)", {"minimised": True}
     if W.hung(hwnd):   # before any capture: capturing a window that does not answer can wait forever (RE3 2026-11-02)
+        # 2026-11-23: a known signature beside the game says WHY and what to do (mom_state.frozen_cause)
+        known = S.frozen_cause(os.path.dirname(W.program_path(hwnd)))
+        if known:
+            return ("frozen", "the window does not answer Windows: " + known["why"] + ". What to do: " + known["do"],
+                    {"hung": True, "cause": known["cause"], "do": known["do"]})
         return "frozen", "the window does not answer Windows (checked before looking at it)", {"hung": True}
     gap = seconds / max(1, LOOKS - 1)
     read0, cpu0, t0 = W.bytes_read(hwnd), W.cpu_seconds(hwnd), time.time()

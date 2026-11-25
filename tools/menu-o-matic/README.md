@@ -281,3 +281,5 @@ seven checkpoints, no pictures looked at (`ai-game-control-profiles/routes/burno
 The window capture and scancode key presses come from this toolkit's `game-harness.py`. Part of the Lanes plugin as
 the `/lanes:menu` command. The idea, the name and the "look big once, then only small patches" approach came from
 the person this toolkit is built with.
+
+**Why a frozen game is frozen (2026-11-23).** When the window does not answer Windows, State-o-matiC looks for a known signature beside the game and says what it means and what to do. Known so far: REFramework's own start-up hang (its log stops in a run of `Suspending <thread>` lines with fewer `Resuming` ones and never says its textures are set up): "end the process and start the game again". The verdict's `signs` carry `cause` and `do`. New signatures go into `mom_state.frozen_cause`, each with a check in `test_menu_o_matic.py`.
