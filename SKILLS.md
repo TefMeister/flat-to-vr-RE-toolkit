@@ -25,6 +25,7 @@ tool it can offer, with its maker; this page keeps to the ones proven on our pro
 | 8 | OpenXR Simulator MCP | webhead2oo9 | the pretend headset, driven by the session |
 | 9 | Blender MCP | ahujasid | a live Blender |
 | 10 | gimp-mcp | maorcc | a live GIMP |
+| 11 | f4decomp MCP | the f4decomp project | helping rebuild Fallout 4's code, one function at a time |
 
 ---
 
@@ -185,6 +186,23 @@ tool it can offer, with its maker; this page keeps to the ones proven on our pro
   `claude mcp add --scope user gimp -- uv run --directory <clone> gimp_mcp_server.py`. In GIMP: Tools → MCP → Start
   MCP Server.
 - **Verify:** `gimp` in `claude mcp list`, and its tools respond with the server started in GIMP.
+
+---
+
+## 11. f4decomp MCP — the f4decomp project
+
+- **What:** The connector to f4decomp, a shared project that rebuilds Fallout 4 (PC, 2015) as readable C++ that
+  compiles to exactly the game's own machine code, one function at a time. The session claims a function, writes
+  it, and the project checks the match on its side and credits it.
+- **Why we depend on it:** It is not a flat-to-VR tool. We use it to give back and to sharpen the skills every mod
+  here leans on: reading a game's machine code and matching it in C++. It runs a compiler over and over, so pause
+  its runs before a performance test (it loaded the processor during one on Silent Hill 2).
+- **Guide:** https://f4decomp.com/agents.md (what you need: the Fallout 4 build it names, the 2012 Visual C++
+  compiler and its checker kit).
+- **Install:** follow the guide's connect steps (your own GitHub account approves it once and you get a private
+  key), then `claude mcp add --transport http f4decomp https://f4decomp.com/mcp --header "Authorization: Bearer <your key>"`.
+  Keep the key out of any file you share.
+- **Verify:** `f4decomp` shows as connected in `claude mcp list`, and its `start_here` tool answers.
 
 ---
 

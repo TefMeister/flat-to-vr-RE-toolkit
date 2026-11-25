@@ -39,6 +39,7 @@ credited, or ask us to stop" section at the bottom.
 | RE Engine MCP — reads and changes a running RE Engine game's live objects through REFramework. MIT | praydog | https://github.com/praydog/re-engine-mcp |
 | UEVR-MCP — the same for Unreal Engine games running UEVR | elliotttate | https://github.com/elliotttate/uevr-mcp |
 | gimp-mcp — lets Claude work inside a running GIMP. GPL-3.0 | maorcc | https://github.com/maorcc/gimp-mcp |
+| f4decomp — the shared rebuild of Fallout 4's code; its connector lets Claude take part | the f4decomp project | https://f4decomp.com/agents.md |
 | The "runtime probe" idea behind `tools/openxr-probe/` — replay the exact API sequence a mod depends on and make the answer an exit code. Studied as a technique from `probe/xr_probe.cpp`; our version is written from scratch in Python, no code copied | webhead2oo9 | https://github.com/webhead2oo9/OpenXR-Simulator |
 | pyopenxr — Python bindings for OpenXR, which `tools/openxr-probe/` is built on | Christopher Bruns (cmbruns) and contributors | https://github.com/cmbruns/pyopenxr |
 | AI development assistance | Claude (Anthropic) | https://www.anthropic.com |
