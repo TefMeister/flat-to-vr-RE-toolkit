@@ -301,8 +301,10 @@ plus small screen checkpoints compared by numbers, so a replay looks at nothing 
 appears. Move-o-matiC adds held keys and camera turns to walk or drive a recorded route; State-o-matiC knows
 which screen the game is on. Each game's routes and a `KNOWN.md` of what has been learned about driving it
 live in [ai-game-control-profiles](https://github.com/TefMeister/ai-game-control-profiles). Python + Pillow.
-Also the `/lanes:menu` command of the Lanes plugin. **Proven on:** routes for twenty-four games so far
-(2026-11-21), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness, Tale of
+Also the `/lanes:menu` command of the Lanes plugin. Since 2026-11-25 it can also drive a game from behind your other
+windows (a kept pretend pad, window messages and pictures of the game's own window), and State-o-matiC names a frozen
+game's known cause with what to do. **Proven on:** routes for twenty-five games so far
+(2026-11-28; driven from behind the other windows on Village, RE2, RE3, RE4, The Darkness and Tale of Two Wastelands), among them Hard Reset, Alice: Madness Returns, Mad Max, Resident Evil Village, The Darkness, Tale of
 Two Wastelands, Condemned 2, Silent Hill 2 (its New Game route checks the screen before each key, since a lost
 Enter once ran the credits) and Resident Evil 4 (2023), the newest (first routes, taught main menu and a first
 walking route, 2026-11-19).
@@ -316,6 +318,13 @@ projection matrices are found without a debugger (Phase 3).
 ### `static-disasm.py` — disassemble with nothing running
 Engine-agnostic static disassembly helper for the game's executable: find code by bytes or strings and read
 it without launching the game. Phase 0 and 3.
+
+### `tdb-read.py` — an RE Engine game's type list, with no game running
+Reads the type database an RE Engine exe carries (every class, its fields with offsets and enum values, its methods
+with parameters and addresses) straight off disk, the same records REFramework reads in the running game. `find`,
+`type` (with `--up` for the parents) and `who` (every field or method whose name matches). Layout version 69
+(Resident Evil Village), taken from REFramework's public headers; other versions are refused, not guessed.
+Read-only. **Proven on:** Resident Evil Village (2026-11-26), answering "what does this class have" without a launch.
 
 ### `list-exports.ps1` — what a DLL or EXE exports
 Lists a PE file's exports, optionally filtered by a pattern. The quick first look before a proxy DLL.
@@ -452,12 +461,12 @@ Holster Zones, Gun Poser, Animation & Timing, Window View) are made to be used t
   hand), Occlusion Drift (two-handed aim drifting), Flickers (single-frame flashes) and Eye Difference (anything
   drawn differently in the left and the right eye). With the Lanes plugin the test is filmed and each jittery
   second is cut out as frames, and the rider files each report by itself.
-- **Proven on:** 942 reports across our VR mods (2026-11-25: 859 Ghost Hand, 83 Camera Jitter), filed by the
-  rider by itself; Flickers caught every planted flash on the
+- **Proven on:** 1,029 reports across our VR mods (2026-11-28: 908 Ghost Hand, 121 Camera Jitter), filed by the
+  rider by itself; Camera Jitter now keeps a knowledge page that boils every session down to a few patterns; Flickers caught every planted flash on the
   simulator; Eye Difference passes its 16 checks on made-up eye pairs.
 
 ### Lanes — the Claude Code plugin all of this runs in
-- **Link:** https://github.com/TefMeister/lanes-plugin (releases; current v0.124.1)
+- **Link:** https://github.com/TefMeister/lanes-plugin (releases; current v0.125.1)
 - **What:** A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for
   Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in
   the headset. Among them: the session lanes, the weekly full scan and tool check, Menu-o-matiC, VR Bench, the
